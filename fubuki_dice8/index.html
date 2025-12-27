@@ -102,19 +102,23 @@
             margin-right: auto;
         }
 
-		.video-wrapper { /* YouTube定番のレスポンシブラッパー */
+		/* YouTubeレスポンシブラッパー */
+		.video-wrapper {
 		    position: relative;
 		    width: 100%;
-		    max-width: 560px;
-		    padding-top: 56.25%; /* 16:9 */
+		    max-width: 560px;   /* PCでの最大幅 */
+		    margin: 20px auto;  /* 中央寄せ */
+		    padding-top: 56.25%; /* 16:9 = 9 / 16 * 100 */
 		}
 		
+		/* iframe本体 */
 		.video-wrapper iframe {
 		    position: absolute;
 		    top: 0;
 		    left: 0;
 		    width: 100%;
 		    height: 100%;
+		    border: 0;
 		}
 
 
@@ -253,20 +257,13 @@
     </div>
 
     <div class="bg1">
-<!--    <iframe src="https://www.youtube.com/embed/hHOgcYP8R20?si=FgSuYh7TaiwK8MBB" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe> -->
-		<iframe width="560" height="315" src="https://www.youtube.com/embed/hHOgcYP8R20?si=FgSuYh7TaiwK8MBB" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
+	    <div class="video-wrapper">
+			<iframe width="560" height="315" src="https://www.youtube.com/embed/hHOgcYP8R20?si=FgSuYh7TaiwK8MBB" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    	</div>
 	<blockquote class="twitter-tweet">
 		<p lang="ja" dir="ltr">年末??? <a href="https://t.co/a7TBgQLMyy">pic.twitter.com/a7TBgQLMyy</a></p>&mdash; 白上フブキ??フブキングダム?? (@shirakamifubuki) <a href="https://twitter.com/shirakamifubuki/status/2002006526890737786?ref_src=twsrc%5Etfw">December 19, 2025</a>
 	</blockquote> 
 	<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-<!-- 2024年のtweet
-        <blockquote class="twitter-tweet">
-            <p lang="ja" dir="ltr">━━━━?２３：００?━━━━<br><br>??&lt;今年のご利益POWERを使い切れ<br>ホロライブギャンブラーとして、今年最後の大勝負！！！！！<br><br>??サイコロ８個ゾロ目出す耐久配信??<br>(睡魔に勝てなかったら終了)<br><br>??豪運END??<a href="https://t.co/xjsf9GU5Hi">https://t.co/xjsf9GU5Hi</a> <a href="https://t.co/ct2VgHoQia">pic.twitter.com/ct2VgHoQia</a></p>&mdash; 白上フブキ????1stソロライブ 2/13「 FBKINGDOM “ANTHEM”」 (@shirakamifubuki) <a href="https://twitter.com/shirakamifubuki/status/1873302075565883833?ref_src=twsrc%5Etfw">December 29, 2024</a>
-        </blockquote>
-        <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
--->
 
     </div>
 
@@ -429,6 +426,7 @@
     </script>
 </body>
 </html>
+
 
 
 
