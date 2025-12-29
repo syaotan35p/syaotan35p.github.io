@@ -20,7 +20,7 @@ body {
 
 /* ===== タイトル ===== */
 h1 {
-    font-size: 2.2rem;
+    font-size: 2.2rem; /* 横画面用 */
     margin-bottom: 24px;
     line-height: 1.2;
 }
@@ -40,10 +40,10 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: stretch;
-    gap: 16px;
+    gap: 12px; /* ダイスとstatsの間隔を少し縮小 */
     max-width: 700px;
     margin: 0 auto 20px;
-    flex-wrap: nowrap; /* 縦画面でも下に回り込まない */
+    flex-wrap: nowrap; /* 縦画面でも回り込まない */
 }
 
 /* ===== サイコロ ===== */
@@ -51,7 +51,7 @@ h1 {
 #dice-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* 横4×縦2 */
-    gap: 8px;
+    gap: 4px; /* ダイス間の余白を縮小 */
     justify-items: center;
 }
 
@@ -134,16 +134,16 @@ button {
 @keyframes roll { from {transform:rotate(0deg);} to {transform:rotate(720deg);} }
 @keyframes glow { from {box-shadow:0 0 8px rgba(255,80,80,0.6);} to {box-shadow:0 0 18px rgba(255,200,200,1);} }
 
-/* ===== スマホ共通 ===== */
+/* ===== スマホ横幅共通 ===== */
 @media (max-width: 480px) {
-    .top-row { gap: 10px; }
-    .dice-panel { width: 220px; }
-    .stats-panel { width: 170px; font-size: 0.9rem; }
+    .top-row { gap: 8px; }
+    .dice-panel { width: 200px; }
+    .stats-panel { width: 160px; font-size: 0.9rem; }
 }
 
 /* ===== 縦画面調整 ===== */
 @media (orientation: portrait) and (max-width: 600px) {
-    h1 { font-size: 1.8rem; } /* タイトルを小さく */
+    h1 { font-size: 1.8rem; } /* タイトルを縦画面で小さく */
     #dice-container { grid-template-columns: repeat(2,1fr); } /* 横2×縦4 */
     .dice { width: 48px; height: 48px; line-height:48px; font-size:1.8rem; }
 }
