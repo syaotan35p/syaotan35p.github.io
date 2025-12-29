@@ -232,25 +232,28 @@ button {
 </div>
 
 <script>
-// サイコロの絵文字を設定
-const diceEmojis = {
-    1: '1️⃣',
-    2: '2️⃣',
-    3: '3️⃣',
-    4: '4️⃣',
-    5: '5️⃣',
-    6: '6️⃣'
-};
-
+// グローバルスコープに`rolls`配列を宣言
 let rollCount = 0, count5 = 0, count6 = 0, count7 = 0, count8 = 0, count9 = 0, lastZoro = 0;
 const history = [];
+let rolls = []; // ここで宣言
+
+// サイコロ絵文字のマッピング
+const diceEmojis = {
+    1: "1️⃣",
+    2: "2️⃣",
+    3: "3️⃣",
+    4: "4️⃣",
+    5: "5️⃣",
+    6: "6️⃣"
+};
 
 window.onload = rollDice;
 
 function rollDice() {
     const c = document.getElementById("dice-container");
     c.innerHTML = "";
-    const rolls = [];
+    rolls = []; // サイコロの結果を毎回初期化
+
     for (let i = 0; i < 9; i++) {
         const r = Math.floor(Math.random() * 6) + 1;
         rolls.push(r);
