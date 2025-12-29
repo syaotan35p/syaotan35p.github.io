@@ -19,7 +19,11 @@ body {
 }
 
 /* ===== タイトル ===== */
-h1 { font-size: 2.2rem; margin-bottom: 24px; }
+h1 {
+    font-size: 2.2rem;
+    margin-bottom: 24px;
+    line-height: 1.2;
+}
 .neon-basic { color: #fff; text-shadow: 0 0 10px #00ffff,0 0 20px #00ffff; }
 
 /* ===== ガラス共通 ===== */
@@ -39,13 +43,14 @@ h1 { font-size: 2.2rem; margin-bottom: 24px; }
     gap: 16px;
     max-width: 700px;
     margin: 0 auto 20px;
+    flex-wrap: nowrap; /* 縦画面でも下に回り込まない */
 }
 
 /* ===== サイコロ ===== */
-.dice-panel { width: 260px; }
+.dice-panel { flex: 0 0 auto; width: 260px; }
 #dice-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* PC/横画面：4×2 */
+    grid-template-columns: repeat(4, 1fr); /* 横4×縦2 */
     gap: 8px;
     justify-items: center;
 }
@@ -69,6 +74,7 @@ h1 { font-size: 2.2rem; margin-bottom: 24px; }
 
 /* ===== stats ===== */
 .stats-panel {
+    flex: 0 0 auto;
     width: 180px;
     font-size: 0.95rem;
     display: flex;
@@ -128,16 +134,17 @@ button {
 @keyframes roll { from {transform:rotate(0deg);} to {transform:rotate(720deg);} }
 @keyframes glow { from {box-shadow:0 0 8px rgba(255,80,80,0.6);} to {box-shadow:0 0 18px rgba(255,200,200,1);} }
 
-/* ===== スマホ対応 ===== */
+/* ===== スマホ共通 ===== */
 @media (max-width: 480px) {
-    .top-row { gap: 10px; flex-direction: column; align-items: center; }
+    .top-row { gap: 10px; }
     .dice-panel { width: 220px; }
     .stats-panel { width: 170px; font-size: 0.9rem; }
 }
 
-/* ===== 縦画面対応 ===== */
+/* ===== 縦画面調整 ===== */
 @media (orientation: portrait) and (max-width: 600px) {
-    #dice-container { grid-template-columns: repeat(2, 1fr); } /* 2×4 */
+    h1 { font-size: 1.8rem; } /* タイトルを小さく */
+    #dice-container { grid-template-columns: repeat(2,1fr); } /* 横2×縦4 */
     .dice { width: 48px; height: 48px; line-height:48px; font-size:1.8rem; }
 }
 </style>
@@ -265,9 +272,8 @@ function showPopup(msg){
     document.getElementById("popup-message").textContent=msg;
     document.getElementById("popup").style.display="flex";
 }
-function closePopup(){
-    document.getElementById("popup").style.display="none";
-}
+function closePopup(){ document.getElementById("popup").style.display="none"; }
 </script>
+
 </body>
 </html>
