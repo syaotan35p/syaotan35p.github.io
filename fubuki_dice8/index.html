@@ -43,8 +43,8 @@ h1 {
 .top-row {
     display: flex;
     justify-content: center;
-    align-items: stretch;
-    gap: 16px;
+    align-items: flex-start;
+    gap: 12px;
     max-width: 800px;
     margin: 0 auto 20px;
     flex-wrap: wrap;
@@ -52,22 +52,22 @@ h1 {
 
 /* ===== サイコロ ===== */
 .dice-panel {
-    width: 270px;
+    width: 250px;
 }
 
 #dice-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3列 */
-    grid-template-rows: repeat(3, 1fr);    /* 3行 */
-    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px; /* 間隔を狭く */
     justify-items: center;
 }
 
 .dice {
-    width: 52px;
-    height: 52px;
-    line-height: 52px;
-    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+    line-height: 50px;
+    font-size: 1.8rem;
     font-weight: bold;
     border-radius: 10px;
     color: #eaf4ff;
@@ -82,7 +82,7 @@ h1 {
 
 /* ===== stats ===== */
 .stats-panel {
-    width: 200px;
+    width: 180px;
     font-size: 0.95rem;
     display: flex;
     flex-direction: column;
@@ -95,10 +95,17 @@ h1 {
 }
 
 /* ===== ボタン ===== */
+.button-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
 button {
-    font-size: 1rem;
-    padding: 10px 22px;
-    margin: 8px;
+    font-size: 0.95rem;
+    padding: 8px 16px;
     border-radius: 999px;
     border: none;
     color: #fff;
@@ -178,18 +185,16 @@ button {
 /* ===== スマホ ===== */
 @media (max-width: 480px) {
     h1 { font-size: 1.6rem; }
-    .top-row {
-        gap: 10px;
-    }
-    .dice-panel { width: 220px; }
-    .stats-panel { width: 170px; font-size: 0.9rem; }
-    #dice-container { gap: 4px; }
+    .dice-panel { width: 200px; }
+    .stats-panel { width: 160px; font-size: 0.9rem; }
+    #dice-container { gap: 3px; }
+    .button-row { gap: 6px; }
 }
 </style>
 </head>
 <body>
 
-<h1 class="neon-basic">🎲フブさんとサイコロ9個ゾロ目耐久🎲 v2025</h1>
+<h1 class="neon-basic">🎲フブさんとサイコロ9個耐久🎲 v2025</h1>
 
 <div class="top-row">
 
@@ -198,7 +203,7 @@ button {
     </div>
 
     <div class="panel stats-panel">
-        <p>振った回数：<span id="roll-count">0</span></p>
+        <p>試行回数：<span id="roll-count">0</span></p>
         <p>5個揃い：<span id="count-5">0</span></p>
         <p>6個揃い：<span id="count-6">0</span></p>
         <p>7個揃い：<span id="count-7">0</span></p>
@@ -208,9 +213,11 @@ button {
 
 </div>
 
-<button onclick="rollDice()">サイコロ9つ振る</button>
-<button onclick="resetStats()">リセット</button>
-<button onclick="tweetResult()">結果をポスト</button>
+<div class="button-row">
+    <button onclick="rollDice()">9個振る</button>
+    <button onclick="resetStats()">リセット</button>
+    <button onclick="tweetResult()">ポスト</button>
+</div>
 
 <div class="twitter-wrap">
 <blockquote class="twitter-tweet">
