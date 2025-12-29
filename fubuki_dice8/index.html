@@ -17,7 +17,7 @@ body {
 }
 
 h1 {
-    font-size: 2rem;
+    font-size: 1.8rem;
     margin-bottom: 16px;
 }
 
@@ -190,7 +190,7 @@ button {
 </head>
 <body>
 
-<h1 class="neon-basic">🎲フブさんとサイコロ9個ゾロ目耐久🎲 v2025</h1>
+<h1 class="neon-basic">🎲フブさんと9個ゾロ目並走</h1>
 
 <!-- 試行回数テーブル -->
 <div class="stats-panel">
@@ -304,7 +304,7 @@ function resetStats(){
 }
 
 function tweetResult(){
-    const text=`サイコロ結果！${rollCount}回目に${lastZoro}個ゾロ目達成！\n#フブさん並走 https://syaotan35p.github.io/fubuki_dice9`;
+    const text=`サイコロ結果！${rollCount}回目に${lastZoro}個ゾロ目達成！\n#フブキングダム https://syaotan35p.github.io/fubuki_dice9`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
 }
 
@@ -317,4 +317,5 @@ function closePopup(){ document.getElementById("popup").style.display="none"; }
 
 </body>
 </html>
+
 
