@@ -214,19 +214,8 @@ button {
 <!-- YouTube -->
 <div class="video-wrapper">
     <iframe src="https://www.youtube.com/embed/jtU-KcAoRZw" title="【運ゲー】サイコロ９個ゾロ目出す耐久配信。(睡魔に勝てなかったら終了)【白上フブキ/ホロライブ】" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-<!--    <iframe src="https://www.youtube.com/embed/hHOgcYP8R20" allowfullscreen></iframe> -->
 </div>
 
-<!-- Twitter --><!--   
-<div class="twitter-wrap">
-<blockquote class="twitter-tweet">
-<p lang="ja" dir="ltr">年末???</p>&mdash; 白上フブキ??
-<a href="https://twitter.com/shirakamifubuki/status/2002006526890737786"></a>
-</blockquote>
-<script async src="https://platform.twitter.com/widgets.js"></script>
-</div>
- -->
-    
 <!-- 履歴 -->
 <div class="history-panel">
     <h3>🎲履歴（直近10回）</h3>
@@ -243,89 +232,94 @@ button {
 </div>
 
 <script>
-let rollCount=0,count5=0,count6=0,count7=0,count8=0,count9=0,lastZoro=0;
-const history=[];
+// サイコロの絵文字を設定
+const diceEmojis = {
+    1: '1️⃣',
+    2: '2️⃣',
+    3: '3️⃣',
+    4: '4️⃣',
+    5: '5️⃣',
+    6: '6️⃣'
+};
 
-window.onload=rollDice;
+let rollCount = 0, count5 = 0, count6 = 0, count7 = 0, count8 = 0, count9 = 0, lastZoro = 0;
+const history = [];
 
-function rollDice(){
-    const c=document.getElementById("dice-container");
-    c.innerHTML="";
-    const rolls=[];
-    for(let i=0;i<9;i++){
-        const r=Math.floor(Math.random()*6)+1;
+window.onload = rollDice;
+
+function rollDice() {
+    const c = document.getElementById("dice-container");
+    c.innerHTML = "";
+    const rolls = [];
+    for (let i = 0; i < 9; i++) {
+        const r = Math.floor(Math.random() * 6) + 1;
         rolls.push(r);
-        const d=document.createElement("div");
-        d.className="dice";
-        d.textContent=r;
+        const d = document.createElement("div");
+        d.className = "dice";
+        d.textContent = r;  // 数字表示のまま
         c.appendChild(d);
     }
 
-    const counts={};
-    rolls.forEach(n=>counts[n]=(counts[n]||0)+1);
-    const max=Math.max(...Object.values(counts));
-    lastZoro=max;
+    const counts = {};
+    rolls.forEach(n => counts[n] = (counts[n] || 0) + 1);
+    const max = Math.max(...Object.values(counts));
+    lastZoro = max;
 
-    rolls.forEach((n,i)=>{ if(counts[n]>=5) c.children[i].classList.add("highlight"); });
+    rolls.forEach((n, i) => { if (counts[n] >= 5) c.children[i].classList.add("highlight"); });
 
     rollCount++;
-    document.getElementById("roll-count").textContent=rollCount;
+    document.getElementById("roll-count").textContent = rollCount;
 
-    let bg="";
-    if(max===5){count5++;bg="#ffe4b5";}
-    if(max===6){count6++;bg="#ff1493";}
-    if(max===7){count7++;bg="#7b60f4";}
-    if(max===8){count8++;bg="#a5a5f5";}
-    if(max===9){count9++; bg="linear-gradient(to right,#f59090,#fcd7a1,#fff9b1,#a5d4ad,#a3bce2,#a59aca,#cfa7cd)";}
-    if(bg) document.body.style.background=bg;
+    let bg = "";
+    if (max === 5) { count5++; bg = "#ffe4b5"; }
+    if (max === 6) { count6++; bg = "#ff1493"; }
+    if (max === 7) { count7++; bg = "#7b60f4"; }
+    if (max === 8) { count8++; bg = "#a5a5f5"; }
+    if (max === 9) { count9++; bg = "linear-gradient(to right,#f59090,#fcd7a1,#fff9b1,#a5d4ad,#a3bce2,#a59aca,#cfa7cd)"; }
+    if (bg) document.body.style.background = bg;
 
     updateCounts();
 
-    if(history.length>=10) history.shift();
-    history.push({text: rolls.join(", "), hit: max>=5});
+    if (history.length >= 10) history.shift();
+    history.push({ text: rolls.join(", "), hit: max >= 5 });
     document.getElementById("history-list").innerHTML =
-        history.map(h=>`<li class="${h.hit?'hit':''}">${h.text}</li>`).join("");
+        history.map(h => `<li class="${h.hit ? 'hit' : ''}">${h.text}</li>`).join("");
 
-    if(max>=5) showPopup(`${max}個ゾロ目達成！`);
+    if (max >= 5) showPopup(`${max}個ゾロ目達成！`);
 }
 
-function updateCounts(){
-    document.getElementById("count-5").textContent=count5;
-    document.getElementById("count-6").textContent=count6;
-    document.getElementById("count-7").textContent=count7;
-    document.getElementById("count-8").textContent=count8;
-    document.getElementById("count-9").textContent=count9;
+function updateCounts() {
+    document.getElementById("count-5").textContent = count5;
+    document.getElementById("count-6").textContent = count6;
+    document.getElementById("count-7").textContent = count7;
+    document.getElementById("count-8").textContent = count8;
+    document.getElementById("count-9").textContent = count9;
 }
 
-function resetStats(){
-    rollCount=count5=count6=count7=count8=count9=0;
-    document.getElementById("roll-count").textContent=0;
+function resetStats() {
+    rollCount = count5 = count6 = count7 = count8 = count9 = 0;
+    document.getElementById("roll-count").textContent = 0;
     updateCounts();
-    document.body.style.background="radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%)";
+    document.body.style.background = "radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%)";
 }
 
-function tweetResult(){
-    const text=`#フブキングダム\n🎲🦊サイコロ９個ゾロ目耐久並走\n「サイコロ結果！${rollCount}回目に${lastZoro}個ゾロ目達成！」\n\n https://syaotan35p.github.io/fubuki_dice9/`;
+function tweetResult() {
+    // サイコロの絵文字に変換
+    const rollsText = rolls.map(roll => diceEmojis[roll]).join(" ");
+    const text = `#フブキングダム\n🎲🦊サイコロ９個ゾロ目耐久並走\n「サイコロ結果！${rollCount}回目に${lastZoro}個ゾロ目達成！」\n\n結果: ${rollsText}\n\n https://syaotan35p.github.io/fubuki_dice9/`;
+
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
 }
 
-function showPopup(msg){
-    document.getElementById("popup-message").textContent=msg;
-    document.getElementById("popup").style.display="flex";
+function showPopup(msg) {
+    document.getElementById("popup-message").textContent = msg;
+    document.getElementById("popup").style.display = "flex";
 }
-function closePopup(){ document.getElementById("popup").style.display="none"; }
+
+function closePopup() {
+    document.getElementById("popup").style.display = "none";
+}
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
