@@ -305,7 +305,7 @@ function resetStats(){
 }
 
 function tweetResult(){
-    const text=`#フブキングダム\n🎲🦊サイコロ９個ゾロ目耐久並走\nサイコロ結果！${rollCount}回目に${lastZoro}個ゾロ目達成！\n\n https://syaotan35p.github.io/fubuki_dice8/`;
+    const text=`#フブキングダム\n🎲🦊サイコロ９個ゾロ目耐久並走\n「サイコロ結果！${rollCount}回目に${lastZoro}個ゾロ目達成！」\n\n https://syaotan35p.github.io/fubuki_dice8/`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
 }
 
@@ -318,6 +318,7 @@ function closePopup(){ document.getElementById("popup").style.display="none"; }
 
 </body>
 </html>
+
 
 
 
