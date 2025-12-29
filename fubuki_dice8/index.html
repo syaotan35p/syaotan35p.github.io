@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>サイコロ8個ゾロ目耐久並走</title>
-
+<title>サイコロ9個ゾロ目耐久並走</title>
 <style>
 /* ===== 全体 ===== */
 body {
@@ -20,11 +19,14 @@ body {
 
 /* ===== タイトル ===== */
 h1 {
-    font-size: 2.2rem; /* 横画面用 */
-    margin-bottom: 24px;
-    line-height: 1.2;
+    font-size: 2rem;
+    margin-bottom: 16px;
 }
-.neon-basic { color: #fff; text-shadow: 0 0 10px #00ffff,0 0 20px #00ffff; }
+
+.neon-basic {
+    color: #fff;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+}
 
 /* ===== ガラス共通 ===== */
 .panel {
@@ -32,7 +34,9 @@ h1 {
     backdrop-filter: blur(8px);
     border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow:
+        0 10px 30px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 /* ===== 上段 横並び ===== */
@@ -40,18 +44,21 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: stretch;
-    gap: 12px; /* ダイスとstatsの間隔を少し縮小 */
-    max-width: 700px;
+    gap: 16px;
+    max-width: 800px;
     margin: 0 auto 20px;
-    flex-wrap: nowrap; /* 縦画面でも回り込まない */
+    flex-wrap: wrap;
 }
 
 /* ===== サイコロ ===== */
-.dice-panel { flex: 0 0 auto; width: 260px; }
+.dice-panel {
+    width: 270px;
+}
+
 #dice-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 横4×縦2 */
-    gap: 4px; /* ダイス間の余白を縮小 */
+    grid-template-columns: repeat(3, 1fr); /* 3×3 */
+    gap: 6px 6px; /* 縦横ともに少し詰める */
     justify-items: center;
 }
 
@@ -74,15 +81,17 @@ h1 {
 
 /* ===== stats ===== */
 .stats-panel {
-    flex: 0 0 auto;
-    width: 180px;
+    width: 200px;
     font-size: 0.95rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
 }
-.stats-panel p { margin: 6px 0; font-weight: bold; }
+
+.stats-panel p {
+    margin: 6px 0;
+    font-weight: bold;
+}
 
 /* ===== ボタン ===== */
 button {
@@ -101,11 +110,13 @@ button {
     max-width: 520px;
     margin: 20px auto;
 }
+
 .history-panel ul {
     list-style: none;
     padding: 0;
     margin: 0;
 }
+
 .history-panel li {
     font-family: monospace;
     font-weight: bold;
@@ -113,7 +124,10 @@ button {
     text-align: center;
     margin-bottom: 6px;
 }
-.history-panel li.hit { color: #ff4040; }
+
+.history-panel li.hit {
+    color: #ff4040;
+}
 
 /* ===== YouTube ===== */
 .video-wrapper {
@@ -121,39 +135,64 @@ button {
     aspect-ratio: 16/9;
     margin: 30px auto;
 }
-.video-wrapper iframe { width: 100%; height: 100%; border:0; }
 
-/* ===== Twitter ===== */
-.twitter-wrap { max-width: 560px; margin: 20px auto; }
-
-/* ===== ポップアップ ===== */
-.popup { display: none; position: fixed; inset:0; background: rgba(0,0,0,0.6); justify-content:center; align-items:center; }
-.popup-content { background:#0f1a33; padding:26px; border-radius:16px; }
-
-/* ===== アニメ ===== */
-@keyframes roll { from {transform:rotate(0deg);} to {transform:rotate(720deg);} }
-@keyframes glow { from {box-shadow:0 0 8px rgba(255,80,80,0.6);} to {box-shadow:0 0 18px rgba(255,200,200,1);} }
-
-/* ===== スマホ横幅共通 ===== */
-@media (max-width: 480px) {
-    .top-row { gap: 8px; }
-    .dice-panel { width: 200px; }
-    .stats-panel { width: 160px; font-size: 0.9rem; }
+.video-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
 }
 
-/* ===== 縦画面調整 ===== */
-@media (orientation: portrait) and (max-width: 600px) {
-    h1 { font-size: 1.8rem; } /* タイトルを縦画面で小さく */
-    #dice-container { grid-template-columns: repeat(2,1fr); } /* 横2×縦4 */
-    .dice { width: 48px; height: 48px; line-height:48px; font-size:1.8rem; }
+/* ===== Twitter ===== */
+.twitter-wrap {
+    max-width: 560px;
+    margin: 20px auto;
+}
+
+/* ===== ポップアップ ===== */
+.popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+}
+
+.popup-content {
+    background: #0f1a33;
+    padding: 26px;
+    border-radius: 16px;
+}
+
+/* ===== アニメ ===== */
+@keyframes roll {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(720deg); }
+}
+@keyframes glow {
+    from { box-shadow: 0 0 8px rgba(255,80,80,0.6); }
+    to   { box-shadow: 0 0 18px rgba(255,200,200,1); }
+}
+
+/* ===== スマホ ===== */
+@media (max-width: 480px) {
+    h1 { font-size: 1.6rem; }
+    .top-row {
+        gap: 10px;
+    }
+    .dice-panel { width: 220px; }
+    .stats-panel { width: 170px; font-size: 0.9rem; }
+    #dice-container { gap: 4px 4px; }
 }
 </style>
 </head>
 
 <body>
-<h1 class="neon-basic">🎲フブさんとサイコロ8個ゾロ目耐久🎲 v2025</h1>
+
+<h1 class="neon-basic">🎲フブさんとサイコロ9個ゾロ目耐久🎲 v2025</h1>
 
 <div class="top-row">
+
     <div class="panel dice-panel">
         <div id="dice-container"></div>
     </div>
@@ -164,16 +203,14 @@ button {
         <p>6個揃い：<span id="count-6">0</span></p>
         <p>7個揃い：<span id="count-7">0</span></p>
         <p>8個揃い：<span id="count-8">0</span></p>
+        <p>9個揃い：<span id="count-9">0</span></p>
     </div>
+
 </div>
 
-<button onclick="rollDice()">サイコロ8つ振る</button>
+<button onclick="rollDice()">サイコロ9つ振る</button>
 <button onclick="resetStats()">リセット</button>
 <button onclick="tweetResult()">結果をポスト</button>
-
-<div class="video-wrapper">
-    <iframe src="https://www.youtube.com/embed/hHOgcYP8R20" allowfullscreen></iframe>
-</div>
 
 <div class="twitter-wrap">
 <blockquote class="twitter-tweet">
@@ -183,97 +220,4 @@ button {
 <script async src="https://platform.twitter.com/widgets.js"></script>
 </div>
 
-<div class="panel history-panel">
-    <h3>🎲履歴（直近10回）</h3>
-    <ul id="history-list"></ul>
-</div>
-
-<div id="popup" class="popup">
-    <div class="popup-content">
-        <h2>ゾロ目達成！</h2>
-        <p id="popup-message"></p>
-        <button onclick="closePopup()">OK</button>
-    </div>
-</div>
-
-<script>
-let rollCount=0,count5=0,count6=0,count7=0,count8=0,lastZoro=0;
-const history=[];
-
-window.onload=rollDice;
-
-function rollDice(){
-    const c=document.getElementById("dice-container");
-    c.innerHTML="";
-    const rolls=[];
-    for(let i=0;i<8;i++){
-        const r=Math.floor(Math.random()*6)+1;
-        rolls.push(r);
-        const d=document.createElement("div");
-        d.className="dice";
-        d.textContent=r;
-        c.appendChild(d);
-    }
-
-    const counts={};
-    rolls.forEach(n=>counts[n]=(counts[n]||0)+1);
-    const max=Math.max(...Object.values(counts));
-    lastZoro=max;
-
-    rolls.forEach((n,i)=>{
-        if(counts[n]>=5) c.children[i].classList.add("highlight");
-    });
-
-    rollCount++;
-    rollCountEl().textContent=rollCount;
-
-    let bg="";
-    if(max===5){count5++;bg="#ffe4b5";}
-    if(max===6){count6++;bg="#ff1493";}
-    if(max===7){count7++;bg="#7b60f4";}
-    if(max===8){
-        count8++;
-        bg="linear-gradient(to right,#f59090,#fcd7a1,#fff9b1,#a5d4ad,#a3bce2,#a59aca,#cfa7cd)";
-    }
-    if(bg) document.body.style.background=bg;
-
-    updateCounts();
-
-    if(history.length>=10) history.shift();
-    history.push({text: rolls.join(", "), hit: max>=5});
-
-    document.getElementById("history-list").innerHTML =
-        history.map(h=>`<li class="${h.hit?'hit':''}">${h.text}</li>`).join("");
-
-    if(max>=5) showPopup(`${max}個ゾロ目達成！`);
-}
-
-function rollCountEl(){ return document.getElementById("roll-count"); }
-function updateCounts(){
-    document.getElementById("count-5").textContent=count5;
-    document.getElementById("count-6").textContent=count6;
-    document.getElementById("count-7").textContent=count7;
-    document.getElementById("count-8").textContent=count8;
-}
-
-function resetStats(){
-    rollCount=count5=count6=count7=count8=0;
-    updateCounts();
-    rollCountEl().textContent=0;
-    document.body.style.background="radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%)";
-}
-
-function tweetResult(){
-    const text=`サイコロ結果！${rollCount}回目に${lastZoro}個ゾロ目達成！\n#フブさん並走 https://syaotan35p.github.io/fubuki_dice8`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
-}
-
-function showPopup(msg){
-    document.getElementById("popup-message").textContent=msg;
-    document.getElementById("popup").style.display="flex";
-}
-function closePopup(){ document.getElementById("popup").style.display="none"; }
-</script>
-
-</body>
-</html>
+<div class="panel history-
