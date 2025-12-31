@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>サイコロ9個ゾロ目耐久並走</title>
 <style>
+/* ===== 既存CSSそのまま ===== */
 body {
     font-family: "Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     margin: 0;
@@ -29,14 +30,18 @@ h1 {
 .top-row {
     display: flex;
     justify-content: center;
-    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: nowrap;
     max-width: 700px;
     margin: 0 auto 20px;
+    flex-direction: column;
 }
 
 .stats-panel {
     display: flex;
     justify-content: center;
+    gap: 16px;
     width: 100%;
     font-size: 1rem;
     font-weight: bold;
@@ -44,8 +49,11 @@ h1 {
     background: rgba(20,30,60,0.6);
     backdrop-filter: blur(8px);
     border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
     margin-bottom: 16px;
 }
+
+.stats-panel p { margin: 0; }
 
 .dice-panel {
     width: 260px;
@@ -53,18 +61,21 @@ h1 {
     background: rgba(20,30,60,0.6);
     backdrop-filter: blur(8px);
     border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
     margin: 0 auto;
 }
 
 #dice-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: 6px;
 }
 
 .dice {
     width: 52px;
     height: 52px;
+    line-height: 52px;
     font-size: 2rem;
     font-weight: bold;
     border-radius: 10px;
@@ -101,6 +112,34 @@ button {
     border-radius: 16px;
 }
 
+.history-panel ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.history-panel li {
+    font-family: monospace;
+    font-weight: bold;
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.history-panel li.hit { color: #ff4040; }
+
+.video-wrapper {
+    max-width: 560px;
+    aspect-ratio: 16/9;
+    margin: 20px auto;
+}
+
+.video-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
 .popup {
     display: none;
     position: fixed;
@@ -125,14 +164,7 @@ button {
 <h1 class="neon-basic">🎲フブさんと9個ゾロ目並走</h1>
 
 <div class="stats-panel">
-<p>
-回数:<span id="roll-count">0</span>
-　5個:<span id="count-5">0</span>
-　6個:<span id="count-6">0</span>
-　7個:<span id="count-7">0</span>
-　8個:<span id="count-8">0</span>
-　9個:<span id="count-9">0</span>
-</p>
+<p>回数:<span id="roll-count">0</span>　　5個:<span id="count-5">0</span>　6個:<span id="count-6">0</span>　7個:<span id="count-7">0</span>　8個:<span id="count-8">0</span>　9個:<span id="count-9">0</span></p>
 </div>
 
 <div class="top-row">
@@ -143,8 +175,13 @@ button {
 
 <div>
 <button onclick="rollDice()">9個振る</button>
+<!-- ★ resetStats → confirmReset に変更 -->
 <button onclick="confirmReset()">リセット</button>
 <button onclick="tweetResult()">ポスト</button>
+</div>
+
+<div class="video-wrapper">
+<iframe src="https://www.youtube.com/embed/jtU-KcAoRZw" allowfullscreen></iframe>
 </div>
 
 <div class="history-panel">
@@ -152,21 +189,31 @@ button {
 <ul id="history-list"></ul>
 </div>
 
-<!-- 既存POPUP流用 -->
+<!-- ===== 既存：ゾロ目達成POPUP（変更なし） ===== -->
 <div id="popup" class="popup">
 <div class="popup-content">
-<h2 id="popup-title">ゾロ目達成！</h2>
+<h2>ゾロ目達成！</h2>
 <p id="popup-message"></p>
-<div id="popup-buttons">
 <button onclick="closePopup()">OK</button>
 </div>
+</div>
+
+<!-- ===== 追加：リセット確認POPUP ===== -->
+<div id="reset-popup" class="popup">
+<div class="popup-content">
+<h2>確認</h2>
+<p>本当にリセットしますか？</p>
+<button onclick="doReset()">はい</button>
+<button onclick="closeResetPopup()">いいえ</button>
 </div>
 </div>
 
 <script>
-let rollCount=0,count5=0,count6=0,count7=0,count8=0,count9=0,lastZoro=0;
-const history=[];
-let rolls=[];
+let rollCount = 0, count5 = 0, count6 = 0, count7 = 0, count8 = 0, count9 = 0, lastZoro = 0;
+const history = [];
+let rolls = [];
+
+const diceEmojis = {1:"1️⃣",2:"2️⃣",3:"3️⃣",4:"4️⃣",5:"5️⃣",6:"6️⃣"};
 
 window.onload = rollDice;
 
@@ -220,42 +267,43 @@ function updateCounts() {
     document.getElementById("count-9").textContent = count9;
 }
 
-/* === ここが追加部分（確認POPUPのみ） === */
-function confirmReset() {
-    document.getElementById("popup-title").textContent = "本当に？";
-    document.getElementById("popup-message").textContent = "";
-    document.getElementById("popup-buttons").innerHTML = `
-        <button onclick="doReset()">はい</button>
-        <button onclick="closePopup()">いいえ</button>
-    `;
-    document.getElementById("popup").style.display = "flex";
-}
-
-function doReset() {
-    closePopup();
+function resetStats() {
     rollCount = count5 = count6 = count7 = count8 = count9 = 0;
     document.getElementById("roll-count").textContent = 0;
     updateCounts();
     document.body.style.background =
         "radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%)";
 }
-/* === 追加ここまで === */
+
+/* ===== 追加：確認制御 ===== */
+function confirmReset() {
+    document.getElementById("reset-popup").style.display = "flex";
+}
+
+function closeResetPopup() {
+    document.getElementById("reset-popup").style.display = "none";
+}
+
+function doReset() {
+    closeResetPopup();
+    resetStats();
+}
+
+function tweetResult() {
+    // サイコロの絵文字に変換
+    const rollsText = rolls.map(roll => diceEmojis[roll]).join(" ");
+    const text = `#フブキングダム\n\n🎲🦊9サイコロゾロ目耐久並走\n「結果：${rollCount}回目に${lastZoro}個ゾロ目出たよ！」\n ${rollsText}\n https://syaotan35p.github.io/fubuki_dice9/`;
+
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
+}
 
 function showPopup(msg) {
-    document.getElementById("popup-title").textContent = "ゾロ目達成！";
     document.getElementById("popup-message").textContent = msg;
-    document.getElementById("popup-buttons").innerHTML =
-        `<button onclick="closePopup()">OK</button>`;
     document.getElementById("popup").style.display = "flex";
 }
 
 function closePopup() {
     document.getElementById("popup").style.display = "none";
-}
-
-function tweetResult() {
-    const text = `🎲9サイコロ\n${rollCount}回目に${lastZoro}個ゾロ目`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
 }
 </script>
 
