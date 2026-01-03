@@ -215,8 +215,26 @@ const history = [];
 let rolls = [];
 
 const diceEmojis = {1:"1️⃣",2:"2️⃣",3:"3️⃣",4:"4️⃣",5:"5️⃣",6:"6️⃣"};
-window.onload = rollDice;
+window.onload = function() {
+    // ページ読み込み時にlocalStorageからデータを復元
+    const pageId = window.location.pathname.split('/').pop(); // URLの末尾部分で識別
+    const keyPrefix = `session_data_${pageId}`;  // ページごとに一意なキーを作成
+    
+    // データを読み込む
+    if (localStorage.getItem(`${keyPrefix}_rollCount`)) {
+        rollCount = parseInt(localStorage.getItem(`${keyPrefix}_rollCount`));
+        count5 = parseInt(localStorage.getItem(`${keyPrefix}_count5`));
+        count6 = parseInt(localStorage.getItem(`${keyPrefix}_count6`));
+        count7 = parseInt(localStorage.getItem(`${keyPrefix}_count7`));
+        count8 = parseInt(localStorage.getItem(`${keyPrefix}_count8`));
+        count9 = parseInt(localStorage.getItem(`${keyPrefix}_count9`));
+        history = JSON.parse(localStorage.getItem(`${keyPrefix}_history`)) || [];
+        updateCounts();
+    }
+    rollDice();
+};
 
+// ===== 既存のrollDice関数を修正 =====
 function rollDice() {
     const c = document.getElementById("dice-container");
     c.innerHTML = "";
@@ -249,6 +267,17 @@ function rollDice() {
     document.getElementById("history-list").innerHTML =
         history.map(h => `<li class="${h.hit ? 'hit' : ''}">${h.text}</li>`).join("");
     if (max >= 5) showPopup(`${max}個ゾロ目達成！`);
+
+    // localStorageにデータを保存
+    const pageId = window.location.pathname.split('/').pop(); // URLの末尾部分で識別
+    const keyPrefix = `session_data_${pageId}`;  // ページごとに一意なキーを作成
+    localStorage.setItem(`${keyPrefix}_rollCount`, rollCount);
+    localStorage.setItem(`${keyPrefix}_count5`, count5);
+    localStorage.setItem(`${keyPrefix}_count6`, count6);
+    localStorage.setItem(`${keyPrefix}_count7`, count7);
+    localStorage.setItem(`${keyPrefix}_count8`, count8);
+    localStorage.setItem(`${keyPrefix}_count9`, count9);
+    localStorage.setItem(`${keyPrefix}_history`, JSON.stringify(history));
 }
 
 function updateCounts() {
@@ -264,6 +293,17 @@ function resetStats() {
     document.getElementById("roll-count").textContent = 0;
     updateCounts();
     document.body.style.background = "radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%)";
+
+    // localStorageもリセット
+    const pageId = window.location.pathname.split('/').pop(); // URLの末尾部分で識別
+    const keyPrefix = `session_data_${pageId}`;  // ページごとに一意なキーを作成
+    localStorage.removeItem(`${keyPrefix}_rollCount`);
+    localStorage.removeItem(`${keyPrefix}_count5`);
+    localStorage.removeItem(`${keyPrefix}_count6`);
+    localStorage.removeItem(`${keyPrefix}_count7`);
+    localStorage.removeItem(`${keyPrefix}_count8`);
+    localStorage.removeItem(`${keyPrefix}_count9`);
+    localStorage.removeItem(`${keyPrefix}_history`);
 }
 
 function tweetResult() {
