@@ -159,6 +159,13 @@ button {
 
 @keyframes roll { from { transform: rotate(0deg); } to { transform: rotate(720deg); } }
 @keyframes glow { from { box-shadow:0 0 8px rgba(255,80,80,0.6);} to { box-shadow:0 0 18px rgba(255,200,200,1);} }
+
+/* iOS Safari ダブルタップ・高速タップ拡大防止 */
+body, button, .dice {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+}
 </style>
 </head>
 <body>
@@ -211,10 +218,12 @@ button {
 <script>
 // ===== 既存コード（無変更） =====
 let rollCount = 0, count5 = 0, count6 = 0, count7 = 0, count8 = 0, count9 = 0, lastZoro = 0;
-const history = [];
+let history = [];
 let rolls = [];
 
 const diceEmojis = {1:"1️⃣",2:"2️⃣",3:"3️⃣",4:"4️⃣",5:"5️⃣",6:"6️⃣"};
+
+// ===== 元々の onload 処理 =====
 window.onload = function() {
     // ページ読み込み時にlocalStorageからデータを復元
     const pageId = window.location.pathname.split('/').pop(); // URLの末尾部分で識別
@@ -234,7 +243,7 @@ window.onload = function() {
     rollDice();
 };
 
-// ===== 既存のrollDice関数を修正 =====
+// ===== 既存 rollDice 関数 =====
 function rollDice() {
     const c = document.getElementById("dice-container");
     c.innerHTML = "";
@@ -269,8 +278,8 @@ function rollDice() {
     if (max >= 5) showPopup(`${max}個ゾロ目達成！`);
 
     // localStorageにデータを保存
-    const pageId = window.location.pathname.split('/').pop(); // URLの末尾部分で識別
-    const keyPrefix = `session_data_${pageId}`;  // ページごとに一意なキーを作成
+    const pageId = window.location.pathname.split('/').pop();
+    const keyPrefix = `session_data_${pageId}`;
     localStorage.setItem(`${keyPrefix}_rollCount`, rollCount);
     localStorage.setItem(`${keyPrefix}_count5`, count5);
     localStorage.setItem(`${keyPrefix}_count6`, count6);
@@ -295,8 +304,8 @@ function resetStats() {
     document.body.style.background = "radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%)";
 
     // localStorageもリセット
-    const pageId = window.location.pathname.split('/').pop(); // URLの末尾部分で識別
-    const keyPrefix = `session_data_${pageId}`;  // ページごとに一意なキーを作成
+    const pageId = window.location.pathname.split('/').pop();
+    const keyPrefix = `session_data_${pageId}`;
     localStorage.removeItem(`${keyPrefix}_rollCount`);
     localStorage.removeItem(`${keyPrefix}_count5`);
     localStorage.removeItem(`${keyPrefix}_count6`);
@@ -332,6 +341,36 @@ function doReset() {
     closeResetPopup();
     resetStats();
 }
+
+// ===== 新規追加：クエリ ?yt= で動画切替 =====
+(function(){
+    function safeOnLoad(newFunc) {
+        const oldOnLoad = window.onload;
+        if (typeof oldOnLoad === "function") {
+            window.onload = function() {
+                oldOnLoad();
+                newFunc();
+            };
+        } else {
+            window.onload = newFunc;
+        }
+    }
+
+    function updateYouTubeFromQuery() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const ytId = params.get("yt");
+            if (ytId && /^[\w-]{11}$/.test(ytId)) {
+                const iframe = document.querySelector(".video-wrapper iframe");
+                if (iframe) iframe.src = `https://www.youtube.com/embed/${ytId}`;
+            }
+        } catch (e) {
+            console.warn("YouTube URL update skipped", e);
+        }
+    }
+
+    safeOnLoad(updateYouTubeFromQuery);
+})();
 </script>
 
 </body>
