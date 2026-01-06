@@ -50,7 +50,11 @@ h1 {
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
     margin-bottom: 16px;
-    /* stats-panel だけ文字選択を許可 */
+}
+    
+/* stats-panel だけ文字選択を許可 */
+.stats-panel,
+.stats-panel * {
     -webkit-user-select: text !important;
     user-select: text !important;
 }
