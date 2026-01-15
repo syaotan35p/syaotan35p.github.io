@@ -6,11 +6,15 @@
 <title>Simple Mobile Piano</title>
 
 <style>
+:root {
+  --vh: 1vh;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   background: #000;
-  height: 100%;
+  height: calc(var(--vh) * 100);
   overflow: hidden;
   font-family: sans-serif;
 }
@@ -18,7 +22,7 @@ html, body {
 /* ===== レイアウト ===== */
 .piano-wrapper {
   width: 100vw;
-  height: 100vh;
+  height: calc(var(--vh) * 100);
 }
 
 /* 横画面：1段 */
@@ -55,11 +59,11 @@ html, body {
   justify-content: center;
   align-items: flex-end;
   font-size: 4vw;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   user-select: none;
 }
 
-/* 黒鍵（白鍵と同じ幅・高さだけ半分） */
+/* 黒鍵（白鍵の70%幅） */
 .black-key {
   position: absolute;
   top: 0;
@@ -71,7 +75,8 @@ html, body {
   justify-content: center;
   align-items: flex-end;
   font-size: 3vw;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
+  border-radius: 0 0 8px 8px;
 }
 
 /* 押した時の色 */
@@ -109,6 +114,22 @@ html, body {
 </div>
 
 <script>
+// ===== モバイル実寸高さ対策 =====
+function setRealViewportHeight() {
+  const vh = window.visualViewport
+    ? window.visualViewport.height * 0.01
+    : window.innerHeight * 0.01;
+
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+setRealViewportHeight();
+window.addEventListener('resize', setRealViewportHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setRealViewportHeight);
+}
+
+// ===== Audio =====
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playNote(freq) {
@@ -129,7 +150,7 @@ function playNote(freq) {
 }
 
 /* ===== 音階（ドレミ開始・24鍵）===== */
-const baseFreq = 261.63; // ド
+const baseFreq = 261.63;
 const noteNames = ["ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#","ラ","ラ#","シ"];
 const notes = [];
 
@@ -158,6 +179,9 @@ function buildPiano(container, noteSlice) {
     }
   });
 
+  const whiteWidth = 100 / whiteKeys.length;
+  const blackWidth = whiteWidth * 0.7;
+
   whiteKeys.forEach((wk, i) => {
     const idx = wk.index % 12;
     if (![4,11].includes(idx)) {
@@ -169,9 +193,8 @@ function buildPiano(container, noteSlice) {
       bk.dataset.freq = blackNote.freq;
       bk.textContent = blackNote.name;
 
-      const widthPercent = 100 / whiteKeys.length;
-      bk.style.width = widthPercent + "%";
-      bk.style.left = (i + 1) * widthPercent - widthPercent / 2 + "%";
+      bk.style.width = blackWidth + "%";
+      bk.style.left = (i + 1) * whiteWidth - blackWidth / 2 + "%";
 
       container.appendChild(bk);
     }
