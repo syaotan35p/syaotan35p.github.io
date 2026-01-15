@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Fullscreen Web Piano</title>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  height: 100%;
+  overflow: hidden;
+}
+
+.piano {
+  position: relative;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+}
+
+/* 白鍵 */
+.white-key {
+  flex: 1;
+  background: white;
+  border: 1px solid black;
+  box-sizing: border-box;
+}
+
+/* 黒鍵 */
+.black-key {
+  position: absolute;
+  width: 6%;
+  height: 60%;
+  background: black;
+  top: 0;
+  z-index: 10;
+  border-radius: 0 0 6px 6px;
+}
+
+/* タップ時の視覚フィードバック */
+.white-key:active {
+  background: #ddd;
+}
+.black-key:active {
+  background: #444;
+}
+</style>
+</head>
+
+<body>
+
+<div class="piano" id="piano"></div>
+
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playNote(freq) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.value = freq;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.6);
+}
+
+// ===== 音階生成（18鍵 = C4〜F6）=====
+const baseFreq = 261.63; // C4
+const notes = [];
+
+for (let i = 0; i < 18; i++) {
+  notes.push(baseFreq * Math.pow(2, i / 12));
+}
+
+// ===== 鍵盤構築 =====
+const piano = document.getElementById("piano");
+
+// 白鍵インデックス
+const whitePattern = [0,2,4,5,7,9,11];
+
+let whiteKeys = [];
+let blackKeys = [];
+
+notes.forEach((freq, i) => {
+  const noteIndex = i % 12;
+  const isWhite = whitePattern.includes(noteIndex);
+
+  if (isWhite) {
+    const key = document.createElement("div");
+    key.className = "white-key";
+    key.dataset.freq = freq;
+    piano.appendChild(key);
+    whiteKeys.push({ key, index: i });
+  } else {
+    blackKeys.push({ freq, index: i });
+  }
+});
+
+// 黒鍵配置
+whiteKeys.forEach((wk, i) => {
+  const noteIndex = wk.index % 12;
+
+  if (![4,11].includes(noteIndex)) { // E,Bの後は黒鍵なし
+    const bk = document.createElement("div");
+    bk.className = "black-key";
+    bk.dataset.freq = notes[wk.index + 1];
+
+    const leftPercent = ((i + 1) / whiteKeys.length) * 100 - 3;
+    bk.style.left = leftPercent + "%";
+
+    piano.appendChild(bk);
+  }
+});
+
+// タップイベント
+document.querySelectorAll(".white-key, .black-key").forEach(key => {
+  key.addEventListener("touchstart", e => {
+    e.preventDefault();
+    playNote(parseFloat(key.dataset.freq));
+  });
+
+  key.addEventListener("mousedown", () => {
+    playNote(parseFloat(key.dataset.freq));
+  });
+});
+</script>
+
+</body>
+</html>
