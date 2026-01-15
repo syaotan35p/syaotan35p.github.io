@@ -24,33 +24,15 @@ html, body {
   font-family: "Segoe UI","Noto Sans JP",sans-serif;
 }
 
-/* ===== Layout ===== */
-.piano-wrapper {
-  width: 100vw;
-  height: calc(var(--vh) * 100);
-}
+/* Layout */
+.piano-wrapper { width: 100vw; height: calc(var(--vh) * 100); }
 
-.piano-single {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
+.piano-single { display: flex; width: 100%; height: 100%; }
+.piano-double { display: none; flex-direction: column; height: 100%; }
 
-.piano-double {
-  display: none;
-  width: 100%;
-  height: 100%;
-  flex-direction: column;
-}
+.piano { flex: 1; display: flex; position: relative; }
 
-.piano {
-  position: relative;
-  display: flex;
-  flex: 1;
-}
-
-/* ===== Keys ===== */
+/* Keys */
 .white-key {
   flex: 1;
   background: #fff;
@@ -67,11 +49,10 @@ html, body {
   border-radius: 0 0 10px 10px;
 }
 
-/* 押下カラー */
 .white-key.active { background: #ffe066; }
 .black-key.active { background: #ff9800; }
 
-/* 音名刻印 */
+/* Labels */
 .note-label {
   position: absolute;
   right: 6px;
@@ -81,18 +62,14 @@ html, body {
   color: rgba(0,0,0,0.35);
   pointer-events: none;
 }
+.black-key .note-label { color: rgba(255,255,255,0.5); }
 
-.black-key .note-label {
-  color: rgba(255,255,255,0.5);
-}
-
-/* ===== Orientation ===== */
+/* Orientation */
 @media (orientation: portrait) {
   .piano-single { display: none; }
   .piano-double { display: flex; }
   .note-label { font-size: 3.8vw; }
 }
-
 @media (orientation: landscape) {
   .piano-single { display: flex; }
   .piano-double { display: none; }
@@ -104,7 +81,6 @@ html, body {
 
 <div class="piano-wrapper">
   <div class="piano-single" id="piano-single"></div>
-
   <div class="piano-double">
     <div class="piano" id="piano-top"></div>
     <div class="piano" id="piano-bottom"></div>
@@ -112,7 +88,7 @@ html, body {
 </div>
 
 <script>
-/* ===== viewport対策 ===== */
+/* viewport対策 */
 function setRealVH() {
   const vh = (window.visualViewport?.height || window.innerHeight) * 0.01;
   document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -121,7 +97,7 @@ setRealVH();
 window.addEventListener("resize", setRealVH);
 window.visualViewport?.addEventListener("resize", setRealVH);
 
-/* ===== Audio ===== */
+/* Audio */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playNote(freq) {
@@ -130,7 +106,6 @@ function playNote(freq) {
 
   osc.type = "sine";
   osc.frequency.value = freq;
-
   osc.connect(gain);
   gain.connect(audioCtx.destination);
 
@@ -141,21 +116,18 @@ function playNote(freq) {
   osc.stop(audioCtx.currentTime + 0.6);
 }
 
-/* ===== Notes ===== */
+/* Notes */
 const baseFreq = 261.63;
 const noteNames = ["ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#","ラ","ラ#","シ"];
 const notes = [];
 
 for (let i = 0; i < 24; i++) {
-  notes.push({
-    freq: baseFreq * Math.pow(2, i / 12),
-    name: noteNames[i % 12]
-  });
+  notes.push({ freq: baseFreq * Math.pow(2, i / 12), name: noteNames[i % 12] });
 }
 
 const whitePattern = [0,2,4,5,7,9,11];
 
-/* ===== Build Piano ===== */
+/* Build Piano */
 function buildPiano(container, slice) {
   container.innerHTML = "";
   let whiteKeys = [];
@@ -205,65 +177,49 @@ buildPiano(document.getElementById("piano-single"), notes);
 buildPiano(document.getElementById("piano-top"), notes.slice(0,12));
 buildPiano(document.getElementById("piano-bottom"), notes.slice(12,24));
 
-/* ===== 安定版マルチタッチエンジン ===== */
+/* ===== Pointer Events Engine ===== */
 
-let currentTouches = [];
-let activeKeys = new Set();
-let rafPending = false;
+const activePointers = new Map();
 
-function scanTouches() {
-  rafPending = false;
-
-  const newActive = new Set();
-
-  for (const t of currentTouches) {
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    const key = el?.closest(".white-key, .black-key");
-    if (!key) continue;
-
-    newActive.add(key);
-
-    if (!activeKeys.has(key)) {
-      key.classList.add("active");
-      playNote(parseFloat(key.dataset.freq));
-    }
-  }
-
-  activeKeys.forEach(k => {
-    if (!newActive.has(k)) k.classList.remove("active");
-  });
-
-  activeKeys = newActive;
+function getKeyFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el?.closest(".white-key, .black-key");
 }
 
-function requestScan() {
-  if (!rafPending) {
-    rafPending = true;
-    requestAnimationFrame(scanTouches);
+document.addEventListener("pointerdown", e => {
+  const key = getKeyFromPoint(e.clientX, e.clientY);
+  if (!key) return;
+
+  activePointers.set(e.pointerId, key);
+  key.classList.add("active");
+  playNote(parseFloat(key.dataset.freq));
+
+  e.target.setPointerCapture(e.pointerId);
+});
+
+document.addEventListener("pointermove", e => {
+  if (!activePointers.has(e.pointerId)) return;
+
+  const prevKey = activePointers.get(e.pointerId);
+  const newKey = getKeyFromPoint(e.clientX, e.clientY);
+
+  if (newKey && newKey !== prevKey) {
+    prevKey.classList.remove("active");
+    newKey.classList.add("active");
+    playNote(parseFloat(newKey.dataset.freq));
+    activePointers.set(e.pointerId, newKey);
   }
+});
+
+function releasePointer(e) {
+  const key = activePointers.get(e.pointerId);
+  if (key) key.classList.remove("active");
+  activePointers.delete(e.pointerId);
 }
 
-document.addEventListener("touchstart", e => {
-  currentTouches = [...e.touches];
-  requestScan();
-});
-
-document.addEventListener("touchmove", e => {
-  currentTouches = [...e.touches];
-  requestScan();
-  e.preventDefault();
-}, { passive: false });
-
-document.addEventListener("touchend", e => {
-  currentTouches = [...e.touches];
-  requestScan();
-});
-
-document.addEventListener("touchcancel", () => {
-  currentTouches = [];
-  activeKeys.forEach(k => k.classList.remove("active"));
-  activeKeys.clear();
-});
+document.addEventListener("pointerup", releasePointer);
+document.addEventListener("pointercancel", releasePointer);
+document.addEventListener("pointerleave", releasePointer);
 </script>
 
 </body>
