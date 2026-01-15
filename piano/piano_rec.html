@@ -211,7 +211,7 @@ const notes = allNotes.slice(startKey, startKey + numKeys);
 const whitePattern = [0,2,4,5,7,9,11];
 
 /* Build Piano */
-function buildPiano(container, slice) {
+function buildPiano(container, slice, sliceStartIndex = 0) {
   container.innerHTML = "";
   
   // 白鍵と黒鍵を分けて処理
@@ -219,11 +219,12 @@ function buildPiano(container, slice) {
   const blackKeyData = [];
   
   slice.forEach((note, i) => {
-    const actualIndex = (startKey + i) % 12;
+    const globalIndex = sliceStartIndex + i;
+    const actualIndex = (startKey + globalIndex) % 12;
     if (whitePattern.includes(actualIndex)) {
-      whiteKeyData.push({ note, index: i, actualIndex });
+      whiteKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
     } else {
-      blackKeyData.push({ note, index: i, actualIndex });
+      blackKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
     }
   });
 
@@ -247,10 +248,11 @@ function buildPiano(container, slice) {
 
   // 黒鍵を配置
   blackKeyData.forEach(data => {
-    // この黒鍵より前にある白鍵の数を数える
+    // このslice内で、この黒鍵より前にある白鍵の数を数える
     let whiteCountBefore = 0;
-    for (let j = 0; j < data.index; j++) {
-      const checkIndex = (startKey + j) % 12;
+    for (let j = 0; j < data.localIndex; j++) {
+      const checkGlobalIndex = sliceStartIndex + j;
+      const checkIndex = (startKey + checkGlobalIndex) % 12;
       if (whitePattern.includes(checkIndex)) {
         whiteCountBefore++;
       }
@@ -268,7 +270,7 @@ function buildPiano(container, slice) {
 
     bk.style.width = blackW + "%";
     
-    // 左端の黒鍵（左に白鍵がない場合）
+    // 左端の黒鍵（このslice内で左に白鍵がない場合）
     if (whiteCountBefore === 0) {
       bk.style.left = "0%";
     } else {
@@ -280,10 +282,10 @@ function buildPiano(container, slice) {
   });
 }
 
-buildPiano(document.getElementById("piano-single"), notes);
+buildPiano(document.getElementById("piano-single"), notes, 0);
 const half = Math.ceil(notes.length / 2);
-buildPiano(document.getElementById("piano-top"), notes.slice(0, half));
-buildPiano(document.getElementById("piano-bottom"), notes.slice(half));
+buildPiano(document.getElementById("piano-top"), notes.slice(0, half), 0);
+buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half);
 
 /* ===== Copy Mode ===== */
 let playLog = [];
