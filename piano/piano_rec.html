@@ -270,9 +270,9 @@ function buildPiano(container, slice, sliceStartIndex = 0) {
 
     bk.style.width = blackW + "%";
     
-    // 左端の黒鍵（このslice内で左に白鍵がない場合）
+    // 左端の黒鍵（このslice内で左に白鍵がない場合）は左端から少しだけはみ出す
     if (whiteCountBefore === 0) {
-      bk.style.left = "0%";
+      bk.style.left = "-" + (blackW / 2) + "%";
     } else {
       // 通常の黒鍵は白鍵の境界線上に配置
       bk.style.left = whiteCountBefore * whiteW - blackW / 2 + "%";
@@ -283,9 +283,21 @@ function buildPiano(container, slice, sliceStartIndex = 0) {
 }
 
 buildPiano(document.getElementById("piano-single"), notes, 0);
-const half = Math.ceil(notes.length / 2);
-buildPiano(document.getElementById("piano-top"), notes.slice(0, half), 0);
-buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half);
+
+// 2列モード用の分割
+const half = Math.floor(notes.length / 2);
+// 境界の音のインデックス
+const boundaryIndex = (startKey + half) % 12;
+const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
+
+// 境界が黒鍵の場合は両方に含める
+if (isBoundaryBlack && notes.length > half) {
+  buildPiano(document.getElementById("piano-top"), notes.slice(0, half + 1), 0);
+  buildPiano(document.getElementById("piano-bottom"), [...notes.slice(half, half + 1), ...notes.slice(half + 1)], half);
+} else {
+  buildPiano(document.getElementById("piano-top"), notes.slice(0, half), 0);
+  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half);
+}
 
 /* ===== Copy Mode ===== */
 let playLog = [];
