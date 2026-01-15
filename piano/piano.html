@@ -136,7 +136,7 @@ function playNote(freq) {
 }
 
 /* ===== Notes ===== */
-const baseFreq = 261.63; // ド
+const baseFreq = 261.63;
 const noteNames = ["ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#","ラ","ラ#","シ"];
 const notes = [];
 
@@ -199,47 +199,54 @@ buildPiano(document.getElementById("piano-single"), notes);
 buildPiano(document.getElementById("piano-top"), notes.slice(0,12));
 buildPiano(document.getElementById("piano-bottom"), notes.slice(12,24));
 
-/* ===== Multi Touch & Swipe Engine ===== */
-const activeTouches = new Map();
+/* ===== 完全修正版 マルチタッチエンジン ===== */
 
-function getKeyFromPoint(x, y) {
-  const el = document.elementFromPoint(x, y);
-  if (!el) return null;
-  if (el.classList.contains("white-key") || el.classList.contains("black-key")) return el;
-  return el.closest(".white-key, .black-key");
+let activeKeys = new Set();
+
+function clearAllActive() {
+  activeKeys.forEach(k => k.classList.remove("active"));
+  activeKeys.clear();
+}
+
+function updateTouches(touches) {
+  const newActive = new Set();
+
+  for (const t of touches) {
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const key = el?.closest(".white-key, .black-key");
+    if (!key) continue;
+
+    newActive.add(key);
+
+    if (!activeKeys.has(key)) {
+      key.classList.add("active");
+      playNote(parseFloat(key.dataset.freq));
+    }
+  }
+
+  // 解除されたキーを消す
+  activeKeys.forEach(k => {
+    if (!newActive.has(k)) k.classList.remove("active");
+  });
+
+  activeKeys = newActive;
 }
 
 document.addEventListener("touchstart", e => {
-  for (const t of e.changedTouches) {
-    const key = getKeyFromPoint(t.clientX, t.clientY);
-    if (!key) continue;
-
-    key.classList.add("active");
-    playNote(parseFloat(key.dataset.freq));
-    activeTouches.set(t.identifier, key);
-  }
+  updateTouches(e.touches);
 });
 
 document.addEventListener("touchmove", e => {
-  for (const t of e.changedTouches) {
-    const prevKey = activeTouches.get(t.identifier);
-    const newKey = getKeyFromPoint(t.clientX, t.clientY);
-
-    if (newKey && newKey !== prevKey) {
-      prevKey?.classList.remove("active");
-      newKey.classList.add("active");
-      playNote(parseFloat(newKey.dataset.freq));
-      activeTouches.set(t.identifier, newKey);
-    }
-  }
-});
+  updateTouches(e.touches);
+  e.preventDefault();
+}, { passive: false });
 
 document.addEventListener("touchend", e => {
-  for (const t of e.changedTouches) {
-    const key = activeTouches.get(t.identifier);
-    if (key) key.classList.remove("active");
-    activeTouches.delete(t.identifier);
-  }
+  updateTouches(e.touches);
+});
+
+document.addEventListener("touchcancel", e => {
+  clearAllActive();
 });
 </script>
 
