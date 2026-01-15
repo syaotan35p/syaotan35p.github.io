@@ -3,12 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Simple Mobile Piano</title>
+<title>Mobile Piano</title>
 
 <style>
-:root {
-  --vh: 1vh;
-}
+:root { --vh: 1vh; }
 
 html, body {
   margin: 0;
@@ -16,16 +14,15 @@ html, body {
   background: #000;
   height: calc(var(--vh) * 100);
   overflow: hidden;
-  font-family: sans-serif;
+  font-family: "Segoe UI","Noto Sans JP",sans-serif;
 }
 
-/* ===== レイアウト ===== */
+/* ===== Layout ===== */
 .piano-wrapper {
   width: 100vw;
   height: calc(var(--vh) * 100);
 }
 
-/* 横画面：1段 */
 .piano-single {
   display: flex;
   width: 100%;
@@ -33,7 +30,6 @@ html, body {
   position: relative;
 }
 
-/* 縦画面：2段 */
 .piano-double {
   display: none;
   width: 100%;
@@ -41,7 +37,6 @@ html, body {
   flex-direction: column;
 }
 
-/* ===== 鍵盤共通 ===== */
 .piano {
   position: relative;
   display: flex;
@@ -49,46 +44,47 @@ html, body {
   touch-action: none;
 }
 
-/* 白鍵 */
+/* ===== Keys ===== */
 .white-key {
   flex: 1;
   background: #fff;
   border: 1px solid #000;
-  box-sizing: border-box;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  font-size: 4vw;
-  padding-bottom: 12px;
-  user-select: none;
+  position: relative;
 }
 
-/* 黒鍵（白鍵の70%幅） */
 .black-key {
   position: absolute;
   top: 0;
   height: 50%;
   background: #000;
   z-index: 10;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  font-size: 3vw;
-  padding-bottom: 8px;
   border-radius: 0 0 8px 8px;
 }
 
-/* 押した時の色 */
-.white-key.active { background: #ffeb3b; }
+/* 押下カラー */
+.white-key.active { background: #ffe066; }
 .black-key.active { background: #ff9800; }
 
-/* ===== 画面向き制御 ===== */
+/* 音名刻印 */
+.note-label {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font-size: 2.2vw;
+  font-weight: 700;
+  color: rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+
+.black-key .note-label {
+  color: rgba(255,255,255,0.5);
+}
+
+/* ===== Orientation ===== */
 @media (orientation: portrait) {
   .piano-single { display: none; }
   .piano-double { display: flex; }
-  .white-key { font-size: 6vw; }
-  .black-key { font-size: 4vw; }
+  .note-label { font-size: 3.8vw; }
 }
 
 @media (orientation: landscape) {
@@ -101,35 +97,25 @@ html, body {
 <body>
 
 <div class="piano-wrapper">
-
-  <!-- 横画面用 -->
   <div class="piano-single" id="piano-single"></div>
 
-  <!-- 縦画面用 -->
   <div class="piano-double">
     <div class="piano" id="piano-top"></div>
     <div class="piano" id="piano-bottom"></div>
   </div>
-
 </div>
 
 <script>
-// ===== モバイル実寸高さ対策 =====
-function setRealViewportHeight() {
-  const vh = window.visualViewport
-    ? window.visualViewport.height * 0.01
-    : window.innerHeight * 0.01;
-
+/* ===== viewport対策 ===== */
+function setRealVH() {
+  const vh = (window.visualViewport?.height || window.innerHeight) * 0.01;
   document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
+setRealVH();
+window.addEventListener("resize", setRealVH);
+window.visualViewport?.addEventListener("resize", setRealVH);
 
-setRealViewportHeight();
-window.addEventListener('resize', setRealViewportHeight);
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', setRealViewportHeight);
-}
-
-// ===== Audio =====
+/* ===== Audio ===== */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playNote(freq) {
@@ -142,15 +128,15 @@ function playNote(freq) {
   osc.connect(gain);
   gain.connect(audioCtx.destination);
 
-  gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
 
   osc.start();
   osc.stop(audioCtx.currentTime + 0.6);
 }
 
-/* ===== 音階（ドレミ開始・24鍵）===== */
-const baseFreq = 261.63;
+/* ===== Notes ===== */
+const baseFreq = 261.63; // ド
 const noteNames = ["ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#","ラ","ラ#","シ"];
 const notes = [];
 
@@ -163,72 +149,97 @@ for (let i = 0; i < 24; i++) {
 
 const whitePattern = [0,2,4,5,7,9,11];
 
-function buildPiano(container, noteSlice) {
+/* ===== Build Piano ===== */
+function buildPiano(container, slice) {
   container.innerHTML = "";
   let whiteKeys = [];
 
-  noteSlice.forEach((note, i) => {
-    const idx = i % 12;
-    if (whitePattern.includes(idx)) {
+  slice.forEach((note, i) => {
+    if (whitePattern.includes(i % 12)) {
       const key = document.createElement("div");
       key.className = "white-key";
       key.dataset.freq = note.freq;
-      key.textContent = note.name;
+
+      const label = document.createElement("div");
+      label.className = "note-label";
+      label.textContent = note.name;
+      key.appendChild(label);
+
       container.appendChild(key);
       whiteKeys.push({ key, index: i });
     }
   });
 
-  const whiteWidth = 100 / whiteKeys.length;
-  const blackWidth = whiteWidth * 0.7;
+  const whiteW = 100 / whiteKeys.length;
+  const blackW = whiteW * 0.7;
 
   whiteKeys.forEach((wk, i) => {
-    const idx = wk.index % 12;
-    if (![4,11].includes(idx)) {
-      const blackNote = noteSlice[wk.index + 1];
-      if (!blackNote) return;
+    if (![4,11].includes(wk.index % 12)) {
+      const note = slice[wk.index + 1];
+      if (!note) return;
 
       const bk = document.createElement("div");
       bk.className = "black-key";
-      bk.dataset.freq = blackNote.freq;
-      bk.textContent = blackNote.name;
+      bk.dataset.freq = note.freq;
 
-      bk.style.width = blackWidth + "%";
-      bk.style.left = (i + 1) * whiteWidth - blackWidth / 2 + "%";
+      const label = document.createElement("div");
+      label.className = "note-label";
+      label.textContent = note.name;
+      bk.appendChild(label);
+
+      bk.style.width = blackW + "%";
+      bk.style.left = (i + 1) * whiteW - blackW / 2 + "%";
 
       container.appendChild(bk);
     }
   });
 }
 
-/* 横画面：24鍵 */
 buildPiano(document.getElementById("piano-single"), notes);
-
-/* 縦画面：12鍵 + 12鍵 */
 buildPiano(document.getElementById("piano-top"), notes.slice(0,12));
 buildPiano(document.getElementById("piano-bottom"), notes.slice(12,24));
 
-/* ===== イベント ===== */
-function addKeyEvents(key) {
-  const start = () => {
-    key.classList.add("active");
-    playNote(parseFloat(key.dataset.freq));
-  };
-  const end = () => key.classList.remove("active");
+/* ===== Multi Touch & Swipe Engine ===== */
+const activeTouches = new Map();
 
-  key.addEventListener("mousedown", start);
-  key.addEventListener("mouseup", end);
-  key.addEventListener("mouseleave", end);
-
-  key.addEventListener("touchstart", e => {
-    e.preventDefault();
-    start();
-  });
-  key.addEventListener("touchend", end);
+function getKeyFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  if (el.classList.contains("white-key") || el.classList.contains("black-key")) return el;
+  return el.closest(".white-key, .black-key");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".white-key, .black-key").forEach(addKeyEvents);
+document.addEventListener("touchstart", e => {
+  for (const t of e.changedTouches) {
+    const key = getKeyFromPoint(t.clientX, t.clientY);
+    if (!key) continue;
+
+    key.classList.add("active");
+    playNote(parseFloat(key.dataset.freq));
+    activeTouches.set(t.identifier, key);
+  }
+});
+
+document.addEventListener("touchmove", e => {
+  for (const t of e.changedTouches) {
+    const prevKey = activeTouches.get(t.identifier);
+    const newKey = getKeyFromPoint(t.clientX, t.clientY);
+
+    if (newKey && newKey !== prevKey) {
+      prevKey?.classList.remove("active");
+      newKey.classList.add("active");
+      playNote(parseFloat(newKey.dataset.freq));
+      activeTouches.set(t.identifier, newKey);
+    }
+  }
+});
+
+document.addEventListener("touchend", e => {
+  for (const t of e.changedTouches) {
+    const key = activeTouches.get(t.identifier);
+    if (key) key.classList.remove("active");
+    activeTouches.delete(t.identifier);
+  }
 });
 </script>
 
