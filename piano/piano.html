@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Simple Piano</title>
+<title>Responsive Piano</title>
 
 <style>
 html, body {
@@ -15,15 +15,32 @@ html, body {
   font-family: sans-serif;
 }
 
+/* ===== 共通 ===== */
+.piano-wrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .piano {
   position: relative;
   display: flex;
-  width: 100vw;
-  height: 100vh;
+  flex: 1;
   touch-action: none;
 }
 
-/* 白鍵 */
+/* 横画面：1段 */
+.piano.single {
+  flex-direction: row;
+}
+
+/* 縦画面：2段 */
+.piano.double {
+  flex-direction: row;
+}
+
+/* ===== 鍵盤 ===== */
 .white-key {
   flex: 1;
   background: #fff;
@@ -32,12 +49,11 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  font-size: 3vw;
-  padding-bottom: 10px;
+  font-size: 4vw;
+  padding-bottom: 8px;
   user-select: none;
 }
 
-/* 黒鍵 */
 .black-key {
   position: absolute;
   width: 5%;
@@ -49,24 +65,38 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  font-size: 2vw;
-  padding-bottom: 10px;
+  font-size: 3vw;
+  padding-bottom: 6px;
   border-radius: 0 0 8px 8px;
 }
 
-/* 押した時の色 */
-.white-key.active {
-  background: #ffeb3b;
-}
-.black-key.active {
-  background: #ff9800;
+.white-key.active { background: #ffeb3b; }
+.black-key.active { background: #ff9800; }
+
+/* ===== 縦画面対応 ===== */
+@media (orientation: portrait) {
+  .piano-wrapper {
+    flex-direction: column;
+  }
+  .piano {
+    height: 50vh;
+  }
+  .white-key {
+    font-size: 6vw;
+  }
+  .black-key {
+    font-size: 4vw;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="piano" id="piano"></div>
+<div class="piano-wrapper">
+  <div class="piano" id="piano-top"></div>
+  <div class="piano" id="piano-bottom"></div>
+</div>
 
 <script>
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -88,11 +118,11 @@ function playNote(freq) {
   osc.stop(audioCtx.currentTime + 0.6);
 }
 
-// ラから始める（A4）
-const baseFreq = 440.0; // ラ
+/* ラから24鍵 */
+const baseFreq = 440;
 const noteNames = ["ラ","ラ#","シ","ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#"];
-
 const notes = [];
+
 for (let i = 0; i < 24; i++) {
   notes.push({
     freq: baseFreq * Math.pow(2, i / 12),
@@ -100,44 +130,45 @@ for (let i = 0; i < 24; i++) {
   });
 }
 
-const piano = document.getElementById("piano");
 const whitePattern = [0,2,4,5,7,9,11];
 
-let whiteKeys = [];
+function buildPiano(container, noteSlice) {
+  let whiteKeys = [];
 
-// 白鍵生成
-notes.forEach((note, i) => {
-  const noteIndex = i % 12;
-  if (whitePattern.includes(noteIndex)) {
-    const key = document.createElement("div");
-    key.className = "white-key";
-    key.dataset.freq = note.freq;
-    key.textContent = note.name;
-    piano.appendChild(key);
-    whiteKeys.push({ key, index: i });
-  }
-});
+  noteSlice.forEach((note, i) => {
+    const idx = i % 12;
+    if (whitePattern.includes(idx)) {
+      const key = document.createElement("div");
+      key.className = "white-key";
+      key.dataset.freq = note.freq;
+      key.textContent = note.name;
+      container.appendChild(key);
+      whiteKeys.push({ key, index: i });
+    }
+  });
 
-// 黒鍵生成
-whiteKeys.forEach((wk, i) => {
-  const noteIndex = wk.index % 12;
-  if (![4,11].includes(noteIndex)) {
-    const blackNote = notes[wk.index + 1];
-    if (!blackNote) return;
+  whiteKeys.forEach((wk, i) => {
+    const idx = wk.index % 12;
+    if (![4,11].includes(idx)) {
+      const blackNote = noteSlice[wk.index + 1];
+      if (!blackNote) return;
 
-    const bk = document.createElement("div");
-    bk.className = "black-key";
-    bk.dataset.freq = blackNote.freq;
-    bk.textContent = blackNote.name;
+      const bk = document.createElement("div");
+      bk.className = "black-key";
+      bk.dataset.freq = blackNote.freq;
+      bk.textContent = blackNote.name;
 
-    const leftPercent = ((i + 1) / whiteKeys.length) * 100 - 2.5;
-    bk.style.left = leftPercent + "%";
+      const leftPercent = ((i + 1) / whiteKeys.length) * 100 - 2.5;
+      bk.style.left = leftPercent + "%";
 
-    piano.appendChild(bk);
-  }
-});
+      container.appendChild(bk);
+    }
+  });
+}
 
-// イベント処理
+buildPiano(document.getElementById("piano-top"), notes.slice(0,12));
+buildPiano(document.getElementById("piano-bottom"), notes.slice(12,24));
+
 function addKeyEvents(key) {
   const start = () => {
     key.classList.add("active");
