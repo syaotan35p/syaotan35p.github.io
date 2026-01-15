@@ -214,7 +214,9 @@ const whitePattern = [0,2,4,5,7,9,11];
 function buildPiano(container, slice) {
   container.innerHTML = "";
   let whiteKeys = [];
+  let allKeys = [];
 
+  // まず白鍵を作成してインデックスをマッピング
   slice.forEach((note, i) => {
     const actualIndex = (startKey + i) % 12;
     if (whitePattern.includes(actualIndex)) {
@@ -231,28 +233,33 @@ function buildPiano(container, slice) {
       container.appendChild(key);
       whiteKeys.push({ key, index: i, actualIndex });
     }
+    allKeys.push({ note, index: i, actualIndex, isWhite: whitePattern.includes(actualIndex) });
   });
 
   const whiteW = 100 / whiteKeys.length;
   const blackW = whiteW * 0.7;
 
-  whiteKeys.forEach((wk, i) => {
-    if (![4,11].includes(wk.actualIndex)) {
-      const note = slice[wk.index + 1];
-      if (!note) return;
+  // 黒鍵を配置（各黒鍵の左側にある白鍵の数を数える）
+  allKeys.forEach((item) => {
+    if (!item.isWhite) {
+      // この黒鍵より前にある白鍵の数を数える
+      let whiteCountBefore = 0;
+      for (let j = 0; j < item.index; j++) {
+        if (allKeys[j].isWhite) whiteCountBefore++;
+      }
 
       const bk = document.createElement("div");
       bk.className = "black-key";
-      bk.dataset.freq = note.freq;
-      bk.dataset.name = note.name;
+      bk.dataset.freq = item.note.freq;
+      bk.dataset.name = item.note.name;
 
       const label = document.createElement("div");
       label.className = showLabels ? "note-label" : "note-label hidden";
-      label.textContent = note.name;
+      label.textContent = item.note.name;
       bk.appendChild(label);
 
       bk.style.width = blackW + "%";
-      bk.style.left = (i + 1) * whiteW - blackW / 2 + "%";
+      bk.style.left = whiteCountBefore * whiteW + whiteW / 2 - blackW / 2 + "%";
 
       container.appendChild(bk);
     }
