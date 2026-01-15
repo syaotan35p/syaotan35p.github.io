@@ -2,382 +2,485 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>サイコロ9個ゾロ目耐久並走</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Mobile Piano</title>
+
 <style>
-body {
-    font-family: "Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
-    margin: 0;
-    padding: 20px;
-    text-align: center;
-    color: #eaf4ff;
-    background: radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%);
-    min-height: 100vh;
-    transition: background 0.6s;
+:root { --vh: 1vh; }
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
 }
 
-h1 {
-    font-size: 1.4rem;
-    margin-bottom: 16px;
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  height: calc(var(--vh) * 100);
+  overflow: hidden;
+  font-family: "Segoe UI","Noto Sans JP",sans-serif;
 }
 
-.neon-basic {
-    color: #fff;
-    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+/* Layout */
+.piano-wrapper { width: 100vw; height: calc(var(--vh) * 100); position: relative; }
+
+.piano-single { display: flex; width: 100%; height: 100%; }
+.piano-double { display: none; flex-direction: column; height: 100%; }
+
+.piano { flex: 1; display: flex; position: relative; }
+
+/* Keys */
+.white-key {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #000;
+  position: relative;
 }
 
-.top-row {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 12px;
-    flex-wrap: nowrap;
-    max-width: 700px;
-    margin: 0 auto 20px;
-    flex-direction: column;
+.black-key {
+  position: absolute;
+  top: 0;
+  height: 50%;
+  background: #000;
+  z-index: 10;
+  border-radius: 0 0 10px 10px;
 }
 
-.stats-panel {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    width: 100%;
-    font-size: 1rem;
-    font-weight: bold;
-    padding: 6px;
-    background: rgba(20,30,60,0.6);
-    backdrop-filter: blur(8px);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-    margin-bottom: 16px;
-}
-    
-/* stats-panel だけ文字選択を許可 */
-.stats-panel,
-.stats-panel * {
-    -webkit-user-select: text !important;
-    user-select: text !important;
-}
+.white-key.active { background: #ffe066; }
+.black-key.active { background: #ff9800; }
 
-.stats-panel p { margin: 0; }
+.white-key.next-target { background: #66ff66; }
+.black-key.next-target { background: #00cc00; }
 
-.dice-panel {
-    width: 260px;
-    padding: 8px;
-    background: rgba(20,30,60,0.6);
-    backdrop-filter: blur(8px);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-    margin: 0 auto;
+/* Labels */
+.note-label {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font-size: 2.2vw;
+  font-weight: 700;
+  color: rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+.black-key .note-label { color: rgba(255,255,255,0.5); }
+.note-label.hidden { display: none; }
+
+/* Control Panel */
+.control-panel {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: none;
+  gap: 6px;
+  z-index: 100;
 }
 
-#dice-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 6px;
-    justify-items: center;
-    align-items: center;
+.control-panel.visible { display: flex; }
+
+.ctrl-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: transform 0.1s;
 }
 
-.dice {
-    width: 52px;
-    height: 52px;
-    line-height: 52px;
-    font-size: 2rem;
-    font-weight: bold;
-    border-radius: 10px;
-    color: #eaf4ff;
-    background: linear-gradient(145deg,#1e64c8,#0a3296);
-    animation: roll 0.5s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.ctrl-btn:active { transform: scale(0.9); }
+
+.ctrl-btn.recording { background: #ff4444; color: white; }
+.ctrl-btn.playing { background: #44ff44; color: white; }
+
+/* Log Display */
+.log-display {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  max-height: 80px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  overflow-y: auto;
+  display: none;
+  z-index: 100;
 }
 
-.highlight {
-    background: linear-gradient(145deg,#ff4040,#c80000) !important;
-    animation: glow 0.8s infinite alternate;
+.log-display.visible { display: block; }
+
+.log-display::-webkit-scrollbar {
+  width: 4px;
 }
 
-button {
-    font-size: 1rem;
-    padding: 8px 16px;
-    margin: 6px;
-    border-radius: 999px;
-    border: none;
-    color: #fff;
-    background: linear-gradient(135deg,#4fc3f7,#7b60f4);
-    cursor: pointer;
+.log-display::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.5);
+  border-radius: 2px;
 }
 
-.history-panel {
-    max-width: 520px;
-    margin: 20px auto;
-    padding: 12px;
-    background: rgba(20,30,60,0.6);
-    backdrop-filter: blur(8px);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+/* Orientation */
+@media (orientation: portrait) {
+  .piano-single { display: none; }
+  .piano-double { display: flex; }
+  .note-label { font-size: 3.8vw; }
 }
-
-.history-panel ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.history-panel li {
-    font-family: monospace;
-    font-weight: bold;
-    color: #ffffff;
-    text-align: center;
-    margin-bottom: 6px;
-}
-
-.history-panel li.hit { color: #ff4040; }
-
-.video-wrapper {
-    max-width: 560px;
-    aspect-ratio: 16/9;
-    margin: 20px auto;
-}
-
-.video-wrapper iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-}
-
-.popup {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    justify-content: center;
-    align-items: center;
-}
-
-.popup-content {
-    background: #0f1a33;
-    padding: 26px;
-    border-radius: 16px;
-}
-
-@keyframes roll { from { transform: rotate(0deg); } to { transform: rotate(720deg); } }
-@keyframes glow { from { box-shadow:0 0 8px rgba(255,80,80,0.6);} to { box-shadow:0 0 18px rgba(255,200,200,1);} }
-
-/* iOS Safari ダブルタップ・高速タップ拡大防止 */
-body, button, .dice {
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
+@media (orientation: landscape) {
+  .piano-single { display: flex; }
+  .piano-double { display: none; }
 }
 </style>
 </head>
+
 <body>
 
-<h1 class="neon-basic">🎲フブさんと9個ゾロ目並走</h1>
+<div class="piano-wrapper">
+  <div class="piano-single" id="piano-single"></div>
+  <div class="piano-double">
+    <div class="piano" id="piano-top"></div>
+    <div class="piano" id="piano-bottom"></div>
+  </div>
 
-<div class="stats-panel">
-<p>回数:<span id="roll-count">0</span>　　5個:<span id="count-5">0</span>　6個:<span id="count-6">0</span>　7個:<span id="count-7">0</span>　8個:<span id="count-8">0</span>　9個:<span id="count-9">0</span></p>
-</div>
+  <div class="control-panel" id="control-panel">
+    <button class="ctrl-btn" id="btn-record" title="録音">🔴</button>
+    <button class="ctrl-btn" id="btn-play" title="再生">▶️</button>
+    <button class="ctrl-btn" id="btn-undo" title="1つ戻す">↩️</button>
+    <button class="ctrl-btn" id="btn-clear" title="クリア">🗑️</button>
+  </div>
 
-<div class="top-row">
-<div class="dice-panel">
-<div id="dice-container"></div>
-</div>
-</div>
-
-<div>
-<button onclick="rollDice()">9個振る</button>
-<button onclick="confirmReset()">リセット</button>
-<button onclick="tweetResult()">ポスト</button>
-</div>
-
-<div class="video-wrapper">
-<iframe src="https://www.youtube.com/embed/jtU-KcAoRZw" allowfullscreen></iframe>
-</div>
-
-<div class="history-panel">
-<h3>🎲履歴（直近10回）</h3>
-<ul id="history-list"></ul>
-</div>
-
-<!-- 既存ゾロ目POPUP（無変更） -->
-<div id="popup" class="popup">
-<div class="popup-content">
-<h2>ゾロ目達成！</h2>
-<p id="popup-message"></p>
-<button onclick="closePopup()">OK</button>
-</div>
-</div>
-
-<!-- ★追加：リセット確認POPUP（同デザイン） -->
-<div id="reset-popup" class="popup">
-<div class="popup-content">
-<h2>本当にリセットしますか？</h2>
-<button onclick="doReset()">はい</button>
-<button onclick="closeResetPopup()">いいえ</button>
-</div>
+  <div class="log-display" id="log-display"></div>
 </div>
 
 <script>
-// ===== 既存コード（無変更） =====
-let rollCount = 0, count5 = 0, count6 = 0, count7 = 0, count8 = 0, count9 = 0, lastZoro = 0;
-let history = [];
-let rolls = [];
+/* viewport対策 */
+function setRealVH() {
+  const vh = (window.visualViewport?.height || window.innerHeight) * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+setRealVH();
+window.addEventListener("resize", setRealVH);
+window.visualViewport?.addEventListener("resize", setRealVH);
 
-const diceEmojis = {1:"1️⃣",2:"2️⃣",3:"3️⃣",4:"4️⃣",5:"5️⃣",6:"6️⃣"};
+/* URLパラメータ取得 */
+const params = new URLSearchParams(window.location.search);
+const startKey = parseInt(params.get('start') || '0');
+const numKeys = parseInt(params.get('keys') || '24');
+const showLabels = params.get('labels') !== 'false';
+const copyMode = params.get('copy') === 'true';
+const toneType = params.get('tone') || 'sine';
 
-// ===== 元々の onload 処理 =====
-window.onload = function() {
-    // ページ読み込み時にlocalStorageからデータを復元
-    const pageId = window.location.pathname.split('/').pop(); // URLの末尾部分で識別
-    const keyPrefix = `session_data_${pageId}`;  // ページごとに一意なキーを作成
+/* Audio */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playNote(freq) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = toneType;
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.6);
+}
+
+/* Notes */
+const baseFreq = 261.63;
+const noteNames = ["ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#","ラ","ラ#","シ"];
+const allNotes = [];
+
+for (let i = 0; i < 48; i++) {
+  allNotes.push({ 
+    freq: baseFreq * Math.pow(2, i / 12), 
+    name: noteNames[i % 12],
+    octave: Math.floor(i / 12)
+  });
+}
+
+const notes = allNotes.slice(startKey, startKey + numKeys);
+const whitePattern = [0,2,4,5,7,9,11];
+
+/* Build Piano */
+function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = false) {
+  container.innerHTML = "";
+  
+  // 白鍵と黒鍵を分けて処理
+  const whiteKeyData = [];
+  const blackKeyData = [];
+  
+  slice.forEach((note, i) => {
+    const globalIndex = sliceStartIndex + i;
+    const actualIndex = (startKey + globalIndex) % 12;
+    if (whitePattern.includes(actualIndex)) {
+      whiteKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
+    } else {
+      // skipFirstBlackがtrueで、かつ最初の黒鍵の場合はスキップ
+      if (!(skipFirstBlack && i === 0)) {
+        blackKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
+      }
+    }
+  });
+
+  // 白鍵を作成
+  whiteKeyData.forEach(data => {
+    const key = document.createElement("div");
+    key.className = "white-key";
+    key.dataset.freq = data.note.freq;
+    key.dataset.name = data.note.name;
+
+    const label = document.createElement("div");
+    label.className = showLabels ? "note-label" : "note-label hidden";
+    label.textContent = data.note.name;
+    key.appendChild(label);
+
+    container.appendChild(key);
+  });
+
+  const whiteW = 100 / whiteKeyData.length;
+  const blackW = whiteW * 0.7;
+
+  // 黒鍵を配置
+  blackKeyData.forEach(data => {
+    // このslice内で、この黒鍵より前にある白鍵の数を数える
+    let whiteCountBefore = 0;
+    for (let j = 0; j < data.localIndex; j++) {
+      const checkGlobalIndex = sliceStartIndex + j;
+      const checkIndex = (startKey + checkGlobalIndex) % 12;
+      if (whitePattern.includes(checkIndex)) {
+        whiteCountBefore++;
+      }
+    }
+
+    const bk = document.createElement("div");
+    bk.className = "black-key";
+    bk.dataset.freq = data.note.freq;
+    bk.dataset.name = data.note.name;
+
+    const label = document.createElement("div");
+    label.className = showLabels ? "note-label" : "note-label hidden";
+    label.textContent = data.note.name;
+    bk.appendChild(label);
+
+    bk.style.width = blackW + "%";
     
-    // データを読み込む
-    if (localStorage.getItem(`${keyPrefix}_rollCount`)) {
-        rollCount = parseInt(localStorage.getItem(`${keyPrefix}_rollCount`));
-        count5 = parseInt(localStorage.getItem(`${keyPrefix}_count5`));
-        count6 = parseInt(localStorage.getItem(`${keyPrefix}_count6`));
-        count7 = parseInt(localStorage.getItem(`${keyPrefix}_count7`));
-        count8 = parseInt(localStorage.getItem(`${keyPrefix}_count8`));
-        count9 = parseInt(localStorage.getItem(`${keyPrefix}_count9`));
-        history = JSON.parse(localStorage.getItem(`${keyPrefix}_history`)) || [];
-        updateCounts();
-    }
-    rollDice();
-};
-
-// ===== 既存 rollDice 関数 =====
-function rollDice() {
-    const c = document.getElementById("dice-container");
-    c.innerHTML = "";
-    rolls = [];
-    for (let i = 0; i < 9; i++) {
-        const r = Math.floor(Math.random() * 6) + 1;
-        rolls.push(r);
-        const d = document.createElement("div");
-        d.className = "dice";
-        d.textContent = r;
-        c.appendChild(d);
-    }
-    const counts = {};
-    rolls.forEach(n => counts[n] = (counts[n] || 0) + 1);
-    const max = Math.max(...Object.values(counts));
-    lastZoro = max;
-    rolls.forEach((n, i) => { if (counts[n] >= 5) c.children[i].classList.add("highlight"); });
-    rollCount++;
-    document.getElementById("roll-count").textContent = rollCount;
-    let bg = "";
-    if (max === 5) { count5++; bg = "#ffe4b5"; }
-    if (max === 6) { count6++; bg = "#ff1493"; }
-    if (max === 7) { count7++; bg = "#7b60f4"; }
-    if (max === 8) { count8++; bg = "#a5a5f5"; }
-    if (max === 9) { count9++; bg = "linear-gradient(to right,#f59090,#fcd7a1,#fff9b1,#a5d4ad,#a3bce2,#a59aca,#cfa7cd)"; }
-    if (bg) document.body.style.background = bg;
-    updateCounts();
-    if (history.length >= 10) history.shift();
-    history.push({ text: rolls.join(", "), hit: max >= 5 });
-    document.getElementById("history-list").innerHTML =
-        history.map(h => `<li class="${h.hit ? 'hit' : ''}">${h.text}</li>`).join("");
-    if (max >= 5) showPopup(`${max}個ゾロ目達成！`);
-
-    // localStorageにデータを保存
-    const pageId = window.location.pathname.split('/').pop();
-    const keyPrefix = `session_data_${pageId}`;
-    localStorage.setItem(`${keyPrefix}_rollCount`, rollCount);
-    localStorage.setItem(`${keyPrefix}_count5`, count5);
-    localStorage.setItem(`${keyPrefix}_count6`, count6);
-    localStorage.setItem(`${keyPrefix}_count7`, count7);
-    localStorage.setItem(`${keyPrefix}_count8`, count8);
-    localStorage.setItem(`${keyPrefix}_count9`, count9);
-    localStorage.setItem(`${keyPrefix}_history`, JSON.stringify(history));
-}
-
-function updateCounts() {
-    document.getElementById("count-5").textContent = count5;
-    document.getElementById("count-6").textContent = count6;
-    document.getElementById("count-7").textContent = count7;
-    document.getElementById("count-8").textContent = count8;
-    document.getElementById("count-9").textContent = count9;
-}
-
-function resetStats() {
-    rollCount = count5 = count6 = count7 = count8 = count9 = 0;
-    document.getElementById("roll-count").textContent = 0;
-    updateCounts();
-    document.body.style.background = "radial-gradient(circle at top, #1b2a4a 0%, #0a0f1f 60%)";
-
-    // localStorageもリセット
-    const pageId = window.location.pathname.split('/').pop();
-    const keyPrefix = `session_data_${pageId}`;
-    localStorage.removeItem(`${keyPrefix}_rollCount`);
-    localStorage.removeItem(`${keyPrefix}_count5`);
-    localStorage.removeItem(`${keyPrefix}_count6`);
-    localStorage.removeItem(`${keyPrefix}_count7`);
-    localStorage.removeItem(`${keyPrefix}_count8`);
-    localStorage.removeItem(`${keyPrefix}_count9`);
-    localStorage.removeItem(`${keyPrefix}_history`);
-}
-
-function tweetResult() {
-    const rollsText = rolls.map(roll => diceEmojis[roll]).join(" ");
-    const text = `#フブキングダム\n\n🎲🦊9サイコロゾロ目耐久並走\n「結果：${rollCount}回目に${lastZoro}個ゾロ目出たよ！」\n ${rollsText}\n https://syaotan35p.github.io/fubuki_dice9/`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
-}
-
-function showPopup(msg) {
-    document.getElementById("popup-message").textContent = msg;
-    document.getElementById("popup").style.display = "flex";
-}
-
-function closePopup() {
-    document.getElementById("popup").style.display = "none";
-}
-
-// ===== 追加コード（ここだけ） =====
-function confirmReset() {
-    document.getElementById("reset-popup").style.display = "flex";
-}
-function closeResetPopup() {
-    document.getElementById("reset-popup").style.display = "none";
-}
-function doReset() {
-    closeResetPopup();
-    resetStats();
-}
-
-// ===== 新規追加：クエリ ?yt= で動画切替 =====
-(function(){
-    function safeOnLoad(newFunc) {
-        const oldOnLoad = window.onload;
-        if (typeof oldOnLoad === "function") {
-            window.onload = function() {
-                oldOnLoad();
-                newFunc();
-            };
-        } else {
-            window.onload = newFunc;
-        }
+    // 左端の黒鍵（このslice内で左に白鍵がない場合）は左端から少しだけはみ出す
+    if (whiteCountBefore === 0) {
+      bk.style.left = "-" + (blackW / 2) + "%";
+    } else {
+      // 通常の黒鍵は白鍵の境界線上に配置
+      bk.style.left = whiteCountBefore * whiteW - blackW / 2 + "%";
     }
 
-    function updateYouTubeFromQuery() {
-        try {
-            const params = new URLSearchParams(window.location.search);
-            const ytId = params.get("yt");
-            if (ytId && /^[\w-]{11}$/.test(ytId)) {
-                const iframe = document.querySelector(".video-wrapper iframe");
-                if (iframe) iframe.src = `https://www.youtube.com/embed/${ytId}`;
-            }
-        } catch (e) {
-            console.warn("YouTube URL update skipped", e);
-        }
-    }
+    container.appendChild(bk);
+  });
+}
 
-    safeOnLoad(updateYouTubeFromQuery);
-})();
+buildPiano(document.getElementById("piano-single"), notes, 0, false);
+
+// 2列モード用の分割
+const half = Math.floor(notes.length / 2);
+// 境界の音のインデックス
+const boundaryIndex = (startKey + half) % 12;
+const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
+
+// 境界が黒鍵の場合は上段に含め、下段では表示をスキップ
+if (isBoundaryBlack && notes.length > half) {
+  buildPiano(document.getElementById("piano-top"), notes.slice(0, half + 1), 0, false);
+  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half, true);
+} else {
+  buildPiano(document.getElementById("piano-top"), notes.slice(0, half), 0, false);
+  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half, false);
+}
+
+/* ===== Copy Mode ===== */
+let playLog = [];
+let isRecording = false;
+let isPlayMode = false;
+let playIndex = 0;
+
+const controlPanel = document.getElementById('control-panel');
+const btnRecord = document.getElementById('btn-record');
+const btnPlay = document.getElementById('btn-play');
+const btnUndo = document.getElementById('btn-undo');
+const btnClear = document.getElementById('btn-clear');
+const logDisplay = document.getElementById('log-display');
+
+if (copyMode) {
+  controlPanel.classList.add('visible');
+  logDisplay.classList.add('visible');
+  
+  // localStorageからログを読み込み
+  const savedLog = localStorage.getItem('pianoLog');
+  if (savedLog) {
+    try {
+      playLog = JSON.parse(savedLog);
+      updateLogDisplay();
+    } catch (e) {
+      playLog = [];
+    }
+  }
+}
+
+function saveLog() {
+  localStorage.setItem('pianoLog', JSON.stringify(playLog));
+}
+
+function updateLogDisplay() {
+  if (!copyMode) return;
+  logDisplay.textContent = playLog.map(note => note.name).join(' ');
+  logDisplay.scrollTop = logDisplay.scrollHeight;
+}
+
+function addToLog(freq, name) {
+  if (isRecording && !isPlayMode) {
+    playLog.push({ freq, name });
+    updateLogDisplay();
+    saveLog();
+  }
+}
+
+function clearHighlight() {
+  document.querySelectorAll('.next-target').forEach(el => {
+    el.classList.remove('next-target');
+  });
+}
+
+function highlightNextKey() {
+  clearHighlight();
+  if (playIndex < playLog.length) {
+    const target = playLog[playIndex];
+    const keys = document.querySelectorAll(`[data-freq="${target.freq}"]`);
+    keys.forEach(k => k.classList.add('next-target'));
+  }
+}
+
+btnRecord.addEventListener('click', () => {
+  isRecording = !isRecording;
+  btnRecord.classList.toggle('recording', isRecording);
+  if (!isRecording) {
+    isPlayMode = false;
+    btnPlay.classList.remove('playing');
+    clearHighlight();
+  }
+});
+
+btnPlay.addEventListener('click', () => {
+  if (playLog.length === 0) return;
+  isPlayMode = !isPlayMode;
+  btnPlay.classList.toggle('playing', isPlayMode);
+  
+  if (isPlayMode) {
+    // 再生モードに入ったら録音を停止
+    isRecording = false;
+    btnRecord.classList.remove('recording');
+    
+    playIndex = 0;
+    highlightNextKey();
+  } else {
+    clearHighlight();
+  }
+});
+
+btnUndo.addEventListener('click', () => {
+  if (playLog.length > 0) {
+    playLog.pop();
+    updateLogDisplay();
+    saveLog();
+    if (isPlayMode) {
+      if (playIndex >= playLog.length) {
+        playIndex = playLog.length - 1;
+      }
+      highlightNextKey();
+    }
+  }
+});
+
+btnClear.addEventListener('click', () => {
+  playLog = [];
+  playIndex = 0;
+  clearHighlight();
+  updateLogDisplay();
+  saveLog();
+});
+
+/* ===== Pointer Events Engine ===== */
+
+const activePointers = new Map();
+
+function getKeyFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el?.closest(".white-key, .black-key");
+}
+
+document.addEventListener("pointerdown", e => {
+  const key = getKeyFromPoint(e.clientX, e.clientY);
+  if (!key) return;
+
+  const freq = parseFloat(key.dataset.freq);
+  const name = key.dataset.name;
+
+  if (isPlayMode) {
+    // 再生モード：次のキーと一致するかチェック
+    if (playIndex < playLog.length) {
+      const target = playLog[playIndex];
+      if (Math.abs(freq - target.freq) < 0.1) {
+        // 正解
+        key.classList.add("active");
+        playNote(freq);
+        playIndex++;
+        highlightNextKey();
+        
+        activePointers.set(e.pointerId, key);
+        e.target.setPointerCapture(e.pointerId);
+      }
+    }
+  } else {
+    // 通常モード
+    activePointers.set(e.pointerId, key);
+    key.classList.add("active");
+    playNote(freq);
+    addToLog(freq, name);
+
+    e.target.setPointerCapture(e.pointerId);
+  }
+});
+
+document.addEventListener("pointermove", e => {
+  if (!activePointers.has(e.pointerId) || isPlayMode) return;
+
+  const prevKey = activePointers.get(e.pointerId);
+  const newKey = getKeyFromPoint(e.clientX, e.clientY);
+
+  if (newKey && newKey !== prevKey) {
+    prevKey.classList.remove("active");
+    newKey.classList.add("active");
+    const freq = parseFloat(newKey.dataset.freq);
+    const name = newKey.dataset.name;
+    playNote(freq);
+    addToLog(freq, name);
+    activePointers.set(e.pointerId, newKey);
+  }
+});
+
+function releasePointer(e) {
+  const key = activePointers.get(e.pointerId);
+  if (key) key.classList.remove("active");
+  activePointers.delete(e.pointerId);
+}
+
+document.addEventListener("pointerup", releasePointer);
+document.addEventListener("pointercancel", releasePointer);
+document.addEventListener("pointerleave", releasePointer);
 </script>
 
 </body>
