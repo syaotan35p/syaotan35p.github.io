@@ -211,7 +211,7 @@ const notes = allNotes.slice(startKey, startKey + numKeys);
 const whitePattern = [0,2,4,5,7,9,11];
 
 /* Build Piano */
-function buildPiano(container, slice, sliceStartIndex = 0) {
+function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = false) {
   container.innerHTML = "";
   
   // 白鍵と黒鍵を分けて処理
@@ -224,7 +224,10 @@ function buildPiano(container, slice, sliceStartIndex = 0) {
     if (whitePattern.includes(actualIndex)) {
       whiteKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
     } else {
-      blackKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
+      // skipFirstBlackがtrueで、かつ最初の黒鍵の場合はスキップ
+      if (!(skipFirstBlack && i === 0)) {
+        blackKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
+      }
     }
   });
 
@@ -282,7 +285,7 @@ function buildPiano(container, slice, sliceStartIndex = 0) {
   });
 }
 
-buildPiano(document.getElementById("piano-single"), notes, 0);
+buildPiano(document.getElementById("piano-single"), notes, 0, false);
 
 // 2列モード用の分割
 const half = Math.floor(notes.length / 2);
@@ -290,13 +293,13 @@ const half = Math.floor(notes.length / 2);
 const boundaryIndex = (startKey + half) % 12;
 const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
 
-// 境界が黒鍵の場合は両方に含める
+// 境界が黒鍵の場合は上段に含め、下段では表示をスキップ
 if (isBoundaryBlack && notes.length > half) {
-  buildPiano(document.getElementById("piano-top"), notes.slice(0, half + 1), 0);
-  buildPiano(document.getElementById("piano-bottom"), [...notes.slice(half, half + 1), ...notes.slice(half + 1)], half);
+  buildPiano(document.getElementById("piano-top"), notes.slice(0, half + 1), 0, false);
+  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half, true);
 } else {
-  buildPiano(document.getElementById("piano-top"), notes.slice(0, half), 0);
-  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half);
+  buildPiano(document.getElementById("piano-top"), notes.slice(0, half), 0, false);
+  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half, false);
 }
 
 /* ===== Copy Mode ===== */
@@ -304,6 +307,8 @@ let playLog = [];
 let isRecording = false;
 let isPlayMode = false;
 let playIndex = 0;
+let lastNoteTime = 0;
+const CHORD_THRESHOLD = 100; // 100ms以内なら同時押しとみなす
 
 const controlPanel = document.getElementById('control-panel');
 const btnRecord = document.getElementById('btn-record');
@@ -334,13 +339,37 @@ function saveLog() {
 
 function updateLogDisplay() {
   if (!copyMode) return;
-  logDisplay.textContent = playLog.map(note => note.name).join(' ');
+  const displayText = playLog.map(group => {
+    if (Array.isArray(group)) {
+      return '[' + group.map(n => n.name).join('+') + ']';
+    }
+    return group.name;
+  }).join(' ');
+  logDisplay.textContent = displayText;
   logDisplay.scrollTop = logDisplay.scrollHeight;
 }
 
 function addToLog(freq, name) {
   if (isRecording && !isPlayMode) {
-    playLog.push({ freq, name });
+    const now = Date.now();
+    const note = { freq, name };
+    
+    // 最後の記録から100ms以内なら同時押しとして追加
+    if (now - lastNoteTime < CHORD_THRESHOLD && playLog.length > 0) {
+      const lastItem = playLog[playLog.length - 1];
+      if (Array.isArray(lastItem)) {
+        // 既に和音グループがある場合
+        lastItem.push(note);
+      } else {
+        // 単音を和音グループに変換
+        playLog[playLog.length - 1] = [lastItem, note];
+      }
+    } else {
+      // 新しい単音として追加
+      playLog.push(note);
+    }
+    
+    lastNoteTime = now;
     updateLogDisplay();
     saveLog();
   }
@@ -356,8 +385,18 @@ function highlightNextKey() {
   clearHighlight();
   if (playIndex < playLog.length) {
     const target = playLog[playIndex];
-    const keys = document.querySelectorAll(`[data-freq="${target.freq}"]`);
-    keys.forEach(k => k.classList.add('next-target'));
+    // 単音か和音かを判定
+    if (Array.isArray(target)) {
+      // 和音：すべての音をハイライト
+      target.forEach(note => {
+        const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
+        keys.forEach(k => k.classList.add('next-target'));
+      });
+    } else {
+      // 単音
+      const keys = document.querySelectorAll(`[data-freq="${target.freq}"]`);
+      keys.forEach(k => k.classList.add('next-target'));
+    }
   }
 }
 
