@@ -239,7 +239,7 @@ function buildPiano(container, slice) {
   const whiteW = 100 / whiteKeys.length;
   const blackW = whiteW * 0.7;
 
-  // 黒鍵を配置（各黒鍵の左側にある白鍵の数を数える）
+  // 黒鍵を配置
   allKeys.forEach((item) => {
     if (!item.isWhite) {
       // この黒鍵より前にある白鍵の数を数える
@@ -259,7 +259,14 @@ function buildPiano(container, slice) {
       bk.appendChild(label);
 
       bk.style.width = blackW + "%";
-      bk.style.left = whiteCountBefore * whiteW + whiteW / 2 - blackW / 2 + "%";
+      
+      // 左端の黒鍵（左に白鍵がない場合）は左端に配置
+      if (whiteCountBefore === 0) {
+        bk.style.left = "0%";
+      } else {
+        // 通常の黒鍵は白鍵の境界線上に配置
+        bk.style.left = whiteCountBefore * whiteW - blackW / 2 + "%";
+      }
 
       container.appendChild(bk);
     }
