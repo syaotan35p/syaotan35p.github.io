@@ -213,63 +213,70 @@ const whitePattern = [0,2,4,5,7,9,11];
 /* Build Piano */
 function buildPiano(container, slice) {
   container.innerHTML = "";
-  let whiteKeys = [];
-  let allKeys = [];
-
-  // まず白鍵を作成してインデックスをマッピング
+  
+  // 白鍵と黒鍵を分けて処理
+  const whiteKeyData = [];
+  const blackKeyData = [];
+  
   slice.forEach((note, i) => {
     const actualIndex = (startKey + i) % 12;
     if (whitePattern.includes(actualIndex)) {
-      const key = document.createElement("div");
-      key.className = "white-key";
-      key.dataset.freq = note.freq;
-      key.dataset.name = note.name;
-
-      const label = document.createElement("div");
-      label.className = showLabels ? "note-label" : "note-label hidden";
-      label.textContent = note.name;
-      key.appendChild(label);
-
-      container.appendChild(key);
-      whiteKeys.push({ key, index: i, actualIndex });
+      whiteKeyData.push({ note, index: i, actualIndex });
+    } else {
+      blackKeyData.push({ note, index: i, actualIndex });
     }
-    allKeys.push({ note, index: i, actualIndex, isWhite: whitePattern.includes(actualIndex) });
   });
 
-  const whiteW = 100 / whiteKeys.length;
+  // 白鍵を作成
+  whiteKeyData.forEach(data => {
+    const key = document.createElement("div");
+    key.className = "white-key";
+    key.dataset.freq = data.note.freq;
+    key.dataset.name = data.note.name;
+
+    const label = document.createElement("div");
+    label.className = showLabels ? "note-label" : "note-label hidden";
+    label.textContent = data.note.name;
+    key.appendChild(label);
+
+    container.appendChild(key);
+  });
+
+  const whiteW = 100 / whiteKeyData.length;
   const blackW = whiteW * 0.7;
 
   // 黒鍵を配置
-  allKeys.forEach((item) => {
-    if (!item.isWhite) {
-      // この黒鍵より前にある白鍵の数を数える
-      let whiteCountBefore = 0;
-      for (let j = 0; j < item.index; j++) {
-        if (allKeys[j].isWhite) whiteCountBefore++;
+  blackKeyData.forEach(data => {
+    // この黒鍵より前にある白鍵の数を数える
+    let whiteCountBefore = 0;
+    for (let j = 0; j < data.index; j++) {
+      const checkIndex = (startKey + j) % 12;
+      if (whitePattern.includes(checkIndex)) {
+        whiteCountBefore++;
       }
-
-      const bk = document.createElement("div");
-      bk.className = "black-key";
-      bk.dataset.freq = item.note.freq;
-      bk.dataset.name = item.note.name;
-
-      const label = document.createElement("div");
-      label.className = showLabels ? "note-label" : "note-label hidden";
-      label.textContent = item.note.name;
-      bk.appendChild(label);
-
-      bk.style.width = blackW + "%";
-      
-      // 左端の黒鍵（左に白鍵がない場合）は左端に配置
-      if (whiteCountBefore === 0) {
-        bk.style.left = "0%";
-      } else {
-        // 通常の黒鍵は白鍵の境界線上に配置
-        bk.style.left = whiteCountBefore * whiteW - blackW / 2 + "%";
-      }
-
-      container.appendChild(bk);
     }
+
+    const bk = document.createElement("div");
+    bk.className = "black-key";
+    bk.dataset.freq = data.note.freq;
+    bk.dataset.name = data.note.name;
+
+    const label = document.createElement("div");
+    label.className = showLabels ? "note-label" : "note-label hidden";
+    label.textContent = data.note.name;
+    bk.appendChild(label);
+
+    bk.style.width = blackW + "%";
+    
+    // 左端の黒鍵（左に白鍵がない場合）
+    if (whiteCountBefore === 0) {
+      bk.style.left = "0%";
+    } else {
+      // 通常の黒鍵は白鍵の境界線上に配置
+      bk.style.left = whiteCountBefore * whiteW - blackW / 2 + "%";
+    }
+
+    container.appendChild(bk);
   });
 }
 
