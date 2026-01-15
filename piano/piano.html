@@ -8,6 +8,13 @@
 <style>
 :root { --vh: 1vh; }
 
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -41,7 +48,6 @@ html, body {
   position: relative;
   display: flex;
   flex: 1;
-  touch-action: none;
 }
 
 /* ===== Keys ===== */
@@ -58,7 +64,7 @@ html, body {
   height: 50%;
   background: #000;
   z-index: 10;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 10px 10px;
 }
 
 /* 押下カラー */
@@ -199,19 +205,18 @@ buildPiano(document.getElementById("piano-single"), notes);
 buildPiano(document.getElementById("piano-top"), notes.slice(0,12));
 buildPiano(document.getElementById("piano-bottom"), notes.slice(12,24));
 
-/* ===== 完全修正版 マルチタッチエンジン ===== */
+/* ===== 安定版マルチタッチエンジン ===== */
 
+let currentTouches = [];
 let activeKeys = new Set();
+let rafPending = false;
 
-function clearAllActive() {
-  activeKeys.forEach(k => k.classList.remove("active"));
-  activeKeys.clear();
-}
+function scanTouches() {
+  rafPending = false;
 
-function updateTouches(touches) {
   const newActive = new Set();
 
-  for (const t of touches) {
+  for (const t of currentTouches) {
     const el = document.elementFromPoint(t.clientX, t.clientY);
     const key = el?.closest(".white-key, .black-key");
     if (!key) continue;
@@ -224,7 +229,6 @@ function updateTouches(touches) {
     }
   }
 
-  // 解除されたキーを消す
   activeKeys.forEach(k => {
     if (!newActive.has(k)) k.classList.remove("active");
   });
@@ -232,21 +236,33 @@ function updateTouches(touches) {
   activeKeys = newActive;
 }
 
+function requestScan() {
+  if (!rafPending) {
+    rafPending = true;
+    requestAnimationFrame(scanTouches);
+  }
+}
+
 document.addEventListener("touchstart", e => {
-  updateTouches(e.touches);
+  currentTouches = [...e.touches];
+  requestScan();
 });
 
 document.addEventListener("touchmove", e => {
-  updateTouches(e.touches);
+  currentTouches = [...e.touches];
+  requestScan();
   e.preventDefault();
 }, { passive: false });
 
 document.addEventListener("touchend", e => {
-  updateTouches(e.touches);
+  currentTouches = [...e.touches];
+  requestScan();
 });
 
-document.addEventListener("touchcancel", e => {
-  clearAllActive();
+document.addEventListener("touchcancel", () => {
+  currentTouches = [];
+  activeKeys.forEach(k => k.classList.remove("active"));
+  activeKeys.clear();
 });
 </script>
 
