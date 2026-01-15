@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Responsive Piano</title>
+<title>Simple Mobile Piano</title>
 
 <style>
 html, body {
@@ -15,14 +15,29 @@ html, body {
   font-family: sans-serif;
 }
 
-/* ===== 共通 ===== */
+/* ===== レイアウト ===== */
 .piano-wrapper {
   width: 100vw;
   height: 100vh;
+}
+
+/* 横画面：1段 */
+.piano-single {
   display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* 縦画面：2段 */
+.piano-double {
+  display: none;
+  width: 100%;
+  height: 100%;
   flex-direction: column;
 }
 
+/* ===== 鍵盤共通 ===== */
 .piano {
   position: relative;
   display: flex;
@@ -30,17 +45,7 @@ html, body {
   touch-action: none;
 }
 
-/* 横画面：1段 */
-.piano.single {
-  flex-direction: row;
-}
-
-/* 縦画面：2段 */
-.piano.double {
-  flex-direction: row;
-}
-
-/* ===== 鍵盤 ===== */
+/* 白鍵 */
 .white-key {
   flex: 1;
   background: #fff;
@@ -50,16 +55,16 @@ html, body {
   justify-content: center;
   align-items: flex-end;
   font-size: 4vw;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   user-select: none;
 }
 
+/* 黒鍵（白鍵と同じ幅・高さだけ半分） */
 .black-key {
   position: absolute;
-  width: 5%;
+  top: 0;
   height: 50%;
   background: #000;
-  top: 0;
   z-index: 10;
   color: #fff;
   display: flex;
@@ -67,26 +72,23 @@ html, body {
   align-items: flex-end;
   font-size: 3vw;
   padding-bottom: 6px;
-  border-radius: 0 0 8px 8px;
 }
 
+/* 押した時の色 */
 .white-key.active { background: #ffeb3b; }
 .black-key.active { background: #ff9800; }
 
-/* ===== 縦画面対応 ===== */
+/* ===== 画面向き制御 ===== */
 @media (orientation: portrait) {
-  .piano-wrapper {
-    flex-direction: column;
-  }
-  .piano {
-    height: 50vh;
-  }
-  .white-key {
-    font-size: 6vw;
-  }
-  .black-key {
-    font-size: 4vw;
-  }
+  .piano-single { display: none; }
+  .piano-double { display: flex; }
+  .white-key { font-size: 6vw; }
+  .black-key { font-size: 4vw; }
+}
+
+@media (orientation: landscape) {
+  .piano-single { display: flex; }
+  .piano-double { display: none; }
 }
 </style>
 </head>
@@ -94,8 +96,16 @@ html, body {
 <body>
 
 <div class="piano-wrapper">
-  <div class="piano" id="piano-top"></div>
-  <div class="piano" id="piano-bottom"></div>
+
+  <!-- 横画面用 -->
+  <div class="piano-single" id="piano-single"></div>
+
+  <!-- 縦画面用 -->
+  <div class="piano-double">
+    <div class="piano" id="piano-top"></div>
+    <div class="piano" id="piano-bottom"></div>
+  </div>
+
 </div>
 
 <script>
@@ -118,9 +128,9 @@ function playNote(freq) {
   osc.stop(audioCtx.currentTime + 0.6);
 }
 
-/* ラから24鍵 */
-const baseFreq = 440;
-const noteNames = ["ラ","ラ#","シ","ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#"];
+/* ===== 音階（ドレミ開始・24鍵）===== */
+const baseFreq = 261.63; // ド
+const noteNames = ["ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ#","ラ","ラ#","シ"];
 const notes = [];
 
 for (let i = 0; i < 24; i++) {
@@ -133,6 +143,7 @@ for (let i = 0; i < 24; i++) {
 const whitePattern = [0,2,4,5,7,9,11];
 
 function buildPiano(container, noteSlice) {
+  container.innerHTML = "";
   let whiteKeys = [];
 
   noteSlice.forEach((note, i) => {
@@ -158,17 +169,23 @@ function buildPiano(container, noteSlice) {
       bk.dataset.freq = blackNote.freq;
       bk.textContent = blackNote.name;
 
-      const leftPercent = ((i + 1) / whiteKeys.length) * 100 - 2.5;
-      bk.style.left = leftPercent + "%";
+      const widthPercent = 100 / whiteKeys.length;
+      bk.style.width = widthPercent + "%";
+      bk.style.left = (i + 1) * widthPercent - widthPercent / 2 + "%";
 
       container.appendChild(bk);
     }
   });
 }
 
+/* 横画面：24鍵 */
+buildPiano(document.getElementById("piano-single"), notes);
+
+/* 縦画面：12鍵 + 12鍵 */
 buildPiano(document.getElementById("piano-top"), notes.slice(0,12));
 buildPiano(document.getElementById("piano-bottom"), notes.slice(12,24));
 
+/* ===== イベント ===== */
 function addKeyEvents(key) {
   const start = () => {
     key.classList.add("active");
@@ -187,7 +204,9 @@ function addKeyEvents(key) {
   key.addEventListener("touchend", end);
 }
 
-document.querySelectorAll(".white-key, .black-key").forEach(addKeyEvents);
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".white-key, .black-key").forEach(addKeyEvents);
+});
 </script>
 
 </body>
