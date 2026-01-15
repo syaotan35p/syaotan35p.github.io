@@ -452,6 +452,7 @@ btnClear.addEventListener('click', () => {
 /* ===== Pointer Events Engine ===== */
 
 const activePointers = new Map();
+const currentChordKeys = new Set(); // 現在押されている和音のキー
 
 function getKeyFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -469,15 +470,42 @@ document.addEventListener("pointerdown", e => {
     // 再生モード：次のキーと一致するかチェック
     if (playIndex < playLog.length) {
       const target = playLog[playIndex];
-      if (Math.abs(freq - target.freq) < 0.1) {
-        // 正解
-        key.classList.add("active");
-        playNote(freq);
-        playIndex++;
-        highlightNextKey();
-        
-        activePointers.set(e.pointerId, key);
-        e.target.setPointerCapture(e.pointerId);
+      
+      if (Array.isArray(target)) {
+        // 和音の場合：押されたキーを記録
+        const matchedNote = target.find(note => Math.abs(freq - note.freq) < 0.1);
+        if (matchedNote) {
+          key.classList.add("active");
+          playNote(freq);
+          currentChordKeys.add(freq);
+          activePointers.set(e.pointerId, key);
+          e.target.setPointerCapture(e.pointerId);
+          
+          // すべての音が押されたかチェック
+          const allPressed = target.every(note => {
+            // currentChordKeysに含まれているか確認
+            return Array.from(currentChordKeys).some(pressedFreq => 
+              Math.abs(pressedFreq - note.freq) < 0.1
+            );
+          });
+          
+          if (allPressed) {
+            playIndex++;
+            currentChordKeys.clear();
+            setTimeout(() => highlightNextKey(), 100);
+          }
+        }
+      } else {
+        // 単音の場合
+        if (Math.abs(freq - target.freq) < 0.1) {
+          key.classList.add("active");
+          playNote(freq);
+          playIndex++;
+          highlightNextKey();
+          
+          activePointers.set(e.pointerId, key);
+          e.target.setPointerCapture(e.pointerId);
+        }
       }
     }
   } else {
