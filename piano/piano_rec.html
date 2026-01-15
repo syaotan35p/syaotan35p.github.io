@@ -97,6 +97,34 @@ html, body {
 .ctrl-btn.recording { background: #ff4444; color: white; }
 .ctrl-btn.playing { background: #44ff44; color: white; }
 
+/* Log Display */
+.log-display {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  max-height: 80px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  overflow-y: auto;
+  display: none;
+  z-index: 100;
+}
+
+.log-display.visible { display: block; }
+
+.log-display::-webkit-scrollbar {
+  width: 4px;
+}
+
+.log-display::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.5);
+  border-radius: 2px;
+}
+
 /* Orientation */
 @media (orientation: portrait) {
   .piano-single { display: none; }
@@ -125,6 +153,8 @@ html, body {
     <button class="ctrl-btn" id="btn-undo" title="1つ戻す">↩️</button>
     <button class="ctrl-btn" id="btn-clear" title="クリア">🗑️</button>
   </div>
+
+  <div class="log-display" id="log-display"></div>
 </div>
 
 <script>
@@ -170,7 +200,11 @@ const noteNames = ["ド","ド#","レ","レ#","ミ","ファ","ファ#","ソ","ソ
 const allNotes = [];
 
 for (let i = 0; i < 48; i++) {
-  allNotes.push({ freq: baseFreq * Math.pow(2, i / 12), name: noteNames[i % 12] });
+  allNotes.push({ 
+    freq: baseFreq * Math.pow(2, i / 12), 
+    name: noteNames[i % 12],
+    octave: Math.floor(i / 12)
+  });
 }
 
 const notes = allNotes.slice(startKey, startKey + numKeys);
@@ -182,7 +216,8 @@ function buildPiano(container, slice) {
   let whiteKeys = [];
 
   slice.forEach((note, i) => {
-    if (whitePattern.includes(i % 12)) {
+    const actualIndex = (startKey + i) % 12;
+    if (whitePattern.includes(actualIndex)) {
       const key = document.createElement("div");
       key.className = "white-key";
       key.dataset.freq = note.freq;
@@ -194,7 +229,7 @@ function buildPiano(container, slice) {
       key.appendChild(label);
 
       container.appendChild(key);
-      whiteKeys.push({ key, index: i });
+      whiteKeys.push({ key, index: i, actualIndex });
     }
   });
 
@@ -202,7 +237,7 @@ function buildPiano(container, slice) {
   const blackW = whiteW * 0.7;
 
   whiteKeys.forEach((wk, i) => {
-    if (![4,11].includes(wk.index % 12)) {
+    if (![4,11].includes(wk.actualIndex)) {
       const note = slice[wk.index + 1];
       if (!note) return;
 
@@ -240,14 +275,39 @@ const btnRecord = document.getElementById('btn-record');
 const btnPlay = document.getElementById('btn-play');
 const btnUndo = document.getElementById('btn-undo');
 const btnClear = document.getElementById('btn-clear');
+const logDisplay = document.getElementById('log-display');
 
 if (copyMode) {
   controlPanel.classList.add('visible');
+  logDisplay.classList.add('visible');
+  
+  // localStorageからログを読み込み
+  const savedLog = localStorage.getItem('pianoLog');
+  if (savedLog) {
+    try {
+      playLog = JSON.parse(savedLog);
+      updateLogDisplay();
+    } catch (e) {
+      playLog = [];
+    }
+  }
+}
+
+function saveLog() {
+  localStorage.setItem('pianoLog', JSON.stringify(playLog));
+}
+
+function updateLogDisplay() {
+  if (!copyMode) return;
+  logDisplay.textContent = playLog.map(note => note.name).join(' ');
+  logDisplay.scrollTop = logDisplay.scrollHeight;
 }
 
 function addToLog(freq, name) {
   if (isRecording && !isPlayMode) {
     playLog.push({ freq, name });
+    updateLogDisplay();
+    saveLog();
   }
 }
 
@@ -282,6 +342,10 @@ btnPlay.addEventListener('click', () => {
   btnPlay.classList.toggle('playing', isPlayMode);
   
   if (isPlayMode) {
+    // 再生モードに入ったら録音を停止
+    isRecording = false;
+    btnRecord.classList.remove('recording');
+    
     playIndex = 0;
     highlightNextKey();
   } else {
@@ -292,6 +356,8 @@ btnPlay.addEventListener('click', () => {
 btnUndo.addEventListener('click', () => {
   if (playLog.length > 0) {
     playLog.pop();
+    updateLogDisplay();
+    saveLog();
     if (isPlayMode) {
       if (playIndex >= playLog.length) {
         playIndex = playLog.length - 1;
@@ -305,6 +371,8 @@ btnClear.addEventListener('click', () => {
   playLog = [];
   playIndex = 0;
   clearHighlight();
+  updateLogDisplay();
+  saveLog();
 });
 
 /* ===== Pointer Events Engine ===== */
