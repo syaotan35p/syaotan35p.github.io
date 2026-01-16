@@ -458,14 +458,16 @@ while (topWhiteCount !== bottomWhiteCount && attempts < 12) {
   bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
 }
 
-// 境界黒鍵処理（白鍵数は維持）
+// この時点で白鍵数は揃っている
+// 境界黒鍵処理は表示のみの問題なので、白鍵数には影響しない
 const boundaryIndex = (startKey + half) % 12;
 const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
 let skipFirstBlack = false;
 
-if (isBoundaryBlack && notes.length > half) {
-  topSlice = notes.slice(0, half + 1);
-  bottomSlice = notes.slice(half);
+// 境界が黒鍵で、かつその黒鍵が両方の段に存在する場合
+// 上段の最後に表示し、下段では非表示（skipFirstBlack）にする
+// ただし、sliceは変更しない（白鍵数を維持）
+if (isBoundaryBlack && half < notes.length) {
   skipFirstBlack = true;
 }
 
