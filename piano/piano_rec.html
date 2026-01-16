@@ -299,7 +299,14 @@ window.addEventListener("resize", setRealVH);
 window.visualViewport?.addEventListener("resize", setRealVH);
 
 /* URLパラメータ取得 */
-const params = new URLSearchParams(window.location.search);
+
+
+/*const params = new URLSearchParams(window.location.search);*/
+// Twitterの"&"置き換え対策、クエリを#で取得する
+// ハッシュパラメータを取得
+const hash = window.location.hash.slice(1); // # を除く
+const params = new URLSearchParams(hash);
+  
 const startKey = parseInt(params.get('start') || '0');
 const numKeys = parseInt(params.get('keys') || '24');
 let showLabels = params.get('labels') !== 'false';
