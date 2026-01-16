@@ -319,14 +319,19 @@ bottomStart = half;
 let topWhiteCount = countWhiteKeys(topSlice, topStart);
 let bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
 
-// 白鍵数が異なる場合、調整
-while (topWhiteCount !== bottomWhiteCount && half < notes.length - 1) {
+// 白鍵数が異なる場合、調整（最大12回まで試行）
+let attempts = 0;
+while (topWhiteCount !== bottomWhiteCount && attempts < 12) {
+  attempts++;
+  
   if (topWhiteCount < bottomWhiteCount) {
     // 上段が少ない場合、上段に1音追加
     half++;
+    if (half >= notes.length) break;
   } else {
     // 下段が少ない場合、下段に1音追加（=上段を1音減らす）
     half--;
+    if (half <= 0) break;
   }
   
   topSlice = notes.slice(0, half);
