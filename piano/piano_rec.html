@@ -55,17 +55,23 @@ html, body {
 .white-key.next-target { background: #66ff66; }
 .black-key.next-target { background: #00cc00; }
 
+.white-key.next-next-target { background: #ccffcc; }
+.black-key.next-next-target { background: #88dd88; }
+
 /* Labels */
 .note-label {
   position: absolute;
   right: 6px;
-  bottom: 6px;
+  bottom: 20%;
   font-size: 2.2vw;
   font-weight: 700;
   color: rgba(0,0,0,0.35);
   pointer-events: none;
 }
-.black-key .note-label { color: rgba(255,255,255,0.5); }
+.black-key .note-label { 
+  color: rgba(255,255,255,0.5);
+  bottom: 6px;
+}
 .note-label.hidden { display: none; }
 
 /* Control Panel */
@@ -285,22 +291,66 @@ function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = fals
   });
 }
 
+// 白鍵の数を数える関数
+function countWhiteKeys(slice, startIndex) {
+  let count = 0;
+  slice.forEach((note, i) => {
+    const globalIndex = startIndex + i;
+    const actualIndex = (startKey + globalIndex) % 12;
+    if (whitePattern.includes(actualIndex)) {
+      count++;
+    }
+  });
+  return count;
+}
+
 buildPiano(document.getElementById("piano-single"), notes, 0, false);
 
-// 2列モード用の分割
-const half = Math.floor(notes.length / 2);
-// 境界の音のインデックス
+// 2列モード用の分割（白鍵数を揃える）
+let topSlice, bottomSlice, topStart, bottomStart, skipFirstBlack;
+
+let half = Math.floor(notes.length / 2);
+topSlice = notes.slice(0, half);
+bottomSlice = notes.slice(half);
+topStart = 0;
+bottomStart = half;
+
+// 上下の白鍵数をカウント
+let topWhiteCount = countWhiteKeys(topSlice, topStart);
+let bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
+
+// 白鍵数が異なる場合、調整
+while (topWhiteCount !== bottomWhiteCount && half < notes.length - 1) {
+  if (topWhiteCount < bottomWhiteCount) {
+    // 上段が少ない場合、上段に1音追加
+    half++;
+  } else {
+    // 下段が少ない場合、下段に1音追加（=上段を1音減らす）
+    half--;
+  }
+  
+  topSlice = notes.slice(0, half);
+  bottomSlice = notes.slice(half);
+  bottomStart = half;
+  
+  topWhiteCount = countWhiteKeys(topSlice, topStart);
+  bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
+}
+
+// 境界が黒鍵かチェック
 const boundaryIndex = (startKey + half) % 12;
 const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
+skipFirstBlack = false;
 
-// 境界が黒鍵の場合は上段に含め、下段では表示をスキップ
 if (isBoundaryBlack && notes.length > half) {
-  buildPiano(document.getElementById("piano-top"), notes.slice(0, half + 1), 0, false);
-  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half, true);
-} else {
-  buildPiano(document.getElementById("piano-top"), notes.slice(0, half), 0, false);
-  buildPiano(document.getElementById("piano-bottom"), notes.slice(half), half, false);
+  // 境界が黒鍵の場合、上段に含めて下段ではスキップ
+  topSlice = notes.slice(0, half + 1);
+  bottomSlice = notes.slice(half);
+  skipFirstBlack = true;
 }
+
+buildPiano(document.getElementById("piano-top"), topSlice, topStart, false);
+buildPiano(document.getElementById("piano-bottom"), bottomSlice, bottomStart, skipFirstBlack);
 
 /* ===== Copy Mode ===== */
 let playLog = [];
@@ -308,7 +358,7 @@ let isRecording = false;
 let isPlayMode = false;
 let playIndex = 0;
 let lastNoteTime = 0;
-const CHORD_THRESHOLD = 40; // 100ms以内なら同時押しとみなす
+const CHORD_THRESHOLD = 40;
 
 const controlPanel = document.getElementById('control-panel');
 const btnRecord = document.getElementById('btn-record');
@@ -354,7 +404,7 @@ function addToLog(freq, name) {
     const now = Date.now();
     const note = { freq, name };
 
-    // ★ 2本以上の指が同時に押されている場合のみ和音判定を許可
+    // 2本以上の指が同時に押されている場合のみ和音判定を許可
     const allowChord = activePointers.size >= 2;
 
     if (
@@ -370,7 +420,6 @@ function addToLog(freq, name) {
         playLog[playLog.length - 1] = [lastItem, note];
       }
     } else {
-      // 単音として記録
       playLog.push(note);
     }
 
@@ -381,26 +430,39 @@ function addToLog(freq, name) {
 }
 
 function clearHighlight() {
-  document.querySelectorAll('.next-target').forEach(el => {
-    el.classList.remove('next-target');
+  document.querySelectorAll('.next-target, .next-next-target').forEach(el => {
+    el.classList.remove('next-target', 'next-next-target');
   });
 }
 
 function highlightNextKey() {
   clearHighlight();
+  
+  // 次のキーをハイライト
   if (playIndex < playLog.length) {
     const target = playLog[playIndex];
-    // 単音か和音かを判定
     if (Array.isArray(target)) {
-      // 和音：すべての音をハイライト
       target.forEach(note => {
         const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
         keys.forEach(k => k.classList.add('next-target'));
       });
     } else {
-      // 単音
       const keys = document.querySelectorAll(`[data-freq="${target.freq}"]`);
       keys.forEach(k => k.classList.add('next-target'));
+    }
+  }
+  
+  // 次の次のキーを薄くハイライト（先読み表示）
+  if (playIndex + 1 < playLog.length) {
+    const nextNext = playLog[playIndex + 1];
+    if (Array.isArray(nextNext)) {
+      nextNext.forEach(note => {
+        const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
+        keys.forEach(k => k.classList.add('next-next-target'));
+      });
+    } else {
+      const keys = document.querySelectorAll(`[data-freq="${nextNext.freq}"]`);
+      keys.forEach(k => k.classList.add('next-next-target'));
     }
   }
 }
@@ -413,7 +475,6 @@ btnRecord.addEventListener('click', () => {
     btnPlay.classList.remove('playing');
     clearHighlight();
   } else {
-    // 録音開始時に再生モードを解除
     isPlayMode = false;
     btnPlay.classList.remove('playing');
     clearHighlight();
@@ -426,7 +487,6 @@ btnPlay.addEventListener('click', () => {
   btnPlay.classList.toggle('playing', isPlayMode);
   
   if (isPlayMode) {
-    // 再生モードに入ったら録音を停止
     isRecording = false;
     btnRecord.classList.remove('recording');
     
@@ -462,8 +522,8 @@ btnClear.addEventListener('click', () => {
 /* ===== Pointer Events Engine ===== */
 
 const activePointers = new Map();
-const currentChordKeys = new Set(); // 現在押されている和音のキー
-const recordedFreqsInGesture = new Set(); // 現在のジェスチャーで既に記録した音
+const currentChordKeys = new Set();
+const recordedFreqsInGesture = new Set();
 
 function getKeyFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -478,12 +538,10 @@ document.addEventListener("pointerdown", e => {
   const name = key.dataset.name;
 
   if (isPlayMode) {
-    // 再生モード：次のキーと一致するかチェック
     if (playIndex < playLog.length) {
       const target = playLog[playIndex];
       
       if (Array.isArray(target)) {
-        // 和音の場合：押されたキーを記録
         const matchedNote = target.find(note => Math.abs(freq - note.freq) < 0.1);
         if (matchedNote) {
           key.classList.add("active");
@@ -492,9 +550,7 @@ document.addEventListener("pointerdown", e => {
           activePointers.set(e.pointerId, key);
           e.target.setPointerCapture(e.pointerId);
           
-          // すべての音が押されたかチェック
           const allPressed = target.every(note => {
-            // currentChordKeysに含まれているか確認
             return Array.from(currentChordKeys).some(pressedFreq => 
               Math.abs(pressedFreq - note.freq) < 0.1
             );
@@ -507,7 +563,6 @@ document.addEventListener("pointerdown", e => {
           }
         }
       } else {
-        // 単音の場合
         if (Math.abs(freq - target.freq) < 0.1) {
           key.classList.add("active");
           playNote(freq);
@@ -520,12 +575,10 @@ document.addEventListener("pointerdown", e => {
       }
     }
   } else {
-    // 通常モード
     activePointers.set(e.pointerId, key);
     key.classList.add("active");
     playNote(freq);
     
-    // 録音時：このポインターで初めて記録する音のみ追加
     if (isRecording) {
       recordedFreqsInGesture.add(freq);
       addToLog(freq, name);
@@ -536,7 +589,7 @@ document.addEventListener("pointerdown", e => {
 });
 
 document.addEventListener("pointermove", e => {
-  if (!activePointers.has(e.pointerId) || isPlayMode) return;
+  if (!activePointers.has(e.pointerId)) return;
 
   const prevKey = activePointers.get(e.pointerId);
   const newKey = getKeyFromPoint(e.clientX, e.clientY);
@@ -548,7 +601,6 @@ document.addEventListener("pointermove", e => {
     const name = newKey.dataset.name;
     playNote(freq);
     
-    // スワイプ時：まだ記録していない音のみ追加
     if (isRecording && !recordedFreqsInGesture.has(freq)) {
       recordedFreqsInGesture.add(freq);
       addToLog(freq, name);
@@ -563,7 +615,6 @@ function releasePointer(e) {
   if (key) key.classList.remove("active");
   activePointers.delete(e.pointerId);
   
-  // ポインターが全て離れたらジェスチャー終了
   if (activePointers.size === 0) {
     recordedFreqsInGesture.clear();
   }
