@@ -158,31 +158,33 @@ html, body {
   bottom: 8px;
   left: 8px;
   right: 8px;
-  max-height: 80px;
+  height: 80px;             /* 高さ固定 */
   background: rgba(0,0,0,0.8);
   color: #fff;
   padding: 8px;
   border-radius: 8px;
-  font-size: 14px;
-  overflow-y: auto;
+  font-size: 3em;           /* 文字を大きく */
+  overflow-x: auto;         /* 横スクロール */
+  overflow-y: hidden;       /* 縦スクロール不要 */
   display: none;
   z-index: 100;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  white-space: nowrap;       /* 折り返さず1行 */
 }
 
 .log-display.visible { display: block; }
 
+/* スクロールバー調整 */
 .log-display::-webkit-scrollbar {
-  width: 4px;
+  height: 6px;
 }
 
 .log-display::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.5);
-  border-radius: 2px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 3px;
 }
 
-.log-note { display: inline; }
+/* 各音階 */
+.log-note { display: inline-block; cursor: pointer; padding: 0 4px; }
 .log-note.next { color: #66ff66; font-weight: bold; }
 .log-note.next-next { color: #ccffcc; }
 
@@ -576,9 +578,9 @@ function updateLogDisplay() {
     }
   });
 
-  logDisplay.scrollTop = logDisplay.scrollHeight;
+  // ★ 横スクロールを自動で末尾に追従
+  logDisplay.scrollLeft = logDisplay.scrollWidth;
 }
-
 
 function addToLog(freq, name) {
   if (isRecording && !isPlayMode) {
