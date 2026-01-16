@@ -546,28 +546,34 @@ function updateLogDisplay() {
 
   logDisplay.innerHTML = '';
 
+  let nextTargetSpan = null;
+
   playLog.forEach((group, index) => {
     const span = document.createElement('span');
     span.className = 'log-note';
+    span.dataset.index = index;
 
     // 再生モードハイライト
     if (isPlayMode) {
-      if (index === playIndex) span.classList.add('next');
-      else if (index === playIndex + 1) span.classList.add('next-next');
+      if (index === playIndex) {
+        span.classList.add('next');
+        nextTargetSpan = span; // スクロール対象
+      } else if (index === playIndex + 1) {
+        span.classList.add('next-next');
+      }
     }
 
     if (Array.isArray(group)) {
-      // 和音は [] でまとめて表示
       span.textContent = '[' + group.map(n => n.name).join('+') + ']';
 
-      // ★ ログタッチで再生（和音）
+      // ログタッチで再生（和音）
       span.addEventListener('pointerdown', () => {
         group.forEach(note => playNote(note.freq));
       });
     } else {
       span.textContent = group.name;
 
-      // ★ ログタッチで再生（単音）
+      // ログタッチで再生（単音）
       span.addEventListener('pointerdown', () => playNote(group.freq));
     }
 
@@ -578,8 +584,23 @@ function updateLogDisplay() {
     }
   });
 
-  // ★ 横スクロールを自動で末尾に追従
-  logDisplay.scrollLeft = logDisplay.scrollWidth;
+  // ===== スクロール制御 =====
+
+  if (isPlayMode && nextTargetSpan) {
+    // 再生中：次に押す音階を中央寄せで表示
+    const containerRect = logDisplay.getBoundingClientRect();
+    const targetRect = nextTargetSpan.getBoundingClientRect();
+
+    const offset =
+      targetRect.left - containerRect.left
+      - containerRect.width / 2
+      + targetRect.width / 2;
+
+    logDisplay.scrollLeft += offset;
+  } else {
+    // 通常時：末尾追従
+    logDisplay.scrollLeft = logDisplay.scrollWidth;
+  }
 }
 
 function addToLog(freq, name) {
