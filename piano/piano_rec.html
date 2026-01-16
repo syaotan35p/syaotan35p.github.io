@@ -545,48 +545,40 @@ function updateLogDisplay() {
   logDisplay.innerHTML = '';
 
   playLog.forEach((group, index) => {
+    const span = document.createElement('span');
+    span.className = 'log-note';
+
+    // 再生モードハイライト
+    if (isPlayMode) {
+      if (index === playIndex) span.classList.add('next');
+      else if (index === playIndex + 1) span.classList.add('next-next');
+    }
+
     if (Array.isArray(group)) {
-      group.forEach(note => {
-        const span = document.createElement('span');
-        span.className = 'log-note';
-        
-        if (isPlayMode) {
-          if (index === playIndex) span.classList.add('next');
-          else if (index === playIndex + 1) span.classList.add('next-next');
-        }
+      // 和音は [] でまとめて表示
+      span.textContent = '[' + group.map(n => n.name).join('+') + ']';
 
-        span.textContent = note.name;
-        
-        // ★ ここでクリック／タッチで再生可能にする
-        span.addEventListener('pointerdown', () => playNote(note.freq));
-        
-        logDisplay.appendChild(span);
+      // ★ ログタッチで再生（和音）
+      span.addEventListener('pointerdown', () => {
+        group.forEach(note => playNote(note.freq));
       });
-      logDisplay.appendChild(document.createTextNode(' '));
     } else {
-      const span = document.createElement('span');
-      span.className = 'log-note';
-      
-      if (isPlayMode) {
-        if (index === playIndex) span.classList.add('next');
-        else if (index === playIndex + 1) span.classList.add('next-next');
-      }
-
       span.textContent = group.name;
 
-      // ★ 単音の再生
+      // ★ ログタッチで再生（単音）
       span.addEventListener('pointerdown', () => playNote(group.freq));
+    }
 
-      logDisplay.appendChild(span);
+    logDisplay.appendChild(span);
+
+    if (index < playLog.length - 1) {
       logDisplay.appendChild(document.createTextNode(' '));
     }
   });
 
   logDisplay.scrollTop = logDisplay.scrollHeight;
 }
-  
-  logDisplay.scrollTop = logDisplay.scrollHeight;
-}
+
 
 function addToLog(freq, name) {
   if (isRecording && !isPlayMode) {
