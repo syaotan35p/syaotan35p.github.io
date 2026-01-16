@@ -308,7 +308,7 @@ let isRecording = false;
 let isPlayMode = false;
 let playIndex = 0;
 let lastNoteTime = 0;
-const CHORD_THRESHOLD = 100; // 100ms以内なら同時押しとみなす
+const CHORD_THRESHOLD = 30; // 100ms以内なら同時押しとみなす
 
 const controlPanel = document.getElementById('control-panel');
 const btnRecord = document.getElementById('btn-record');
@@ -353,22 +353,27 @@ function addToLog(freq, name) {
   if (isRecording && !isPlayMode) {
     const now = Date.now();
     const note = { freq, name };
-    
-    // 最後の記録から100ms以内なら同時押しとして追加
-    if (now - lastNoteTime < CHORD_THRESHOLD && playLog.length > 0) {
+
+    // ★ 2本以上の指が同時に押されている場合のみ和音判定を許可
+    const allowChord = activePointers.size >= 2;
+
+    if (
+      allowChord &&
+      now - lastNoteTime < CHORD_THRESHOLD &&
+      playLog.length > 0
+    ) {
       const lastItem = playLog[playLog.length - 1];
+
       if (Array.isArray(lastItem)) {
-        // 既に和音グループがある場合
         lastItem.push(note);
       } else {
-        // 単音を和音グループに変換
         playLog[playLog.length - 1] = [lastItem, note];
       }
     } else {
-      // 新しい単音として追加
+      // 単音として記録
       playLog.push(note);
     }
-    
+
     lastNoteTime = now;
     updateLogDisplay();
     saveLog();
