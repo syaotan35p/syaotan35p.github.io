@@ -541,33 +541,49 @@ function saveLog() {
 
 function updateLogDisplay() {
   if (!copyMode) return;
-  
+
   logDisplay.innerHTML = '';
-  
+
   playLog.forEach((group, index) => {
-    const span = document.createElement('span');
-    span.className = 'log-note';
-    
-    if (isPlayMode) {
-      if (index === playIndex) {
-        span.classList.add('next');
-      } else if (index === playIndex + 1) {
-        span.classList.add('next-next');
-      }
-    }
-    
     if (Array.isArray(group)) {
-      span.textContent = '[' + group.map(n => n.name).join('+') + ']';
+      group.forEach(note => {
+        const span = document.createElement('span');
+        span.className = 'log-note';
+        
+        if (isPlayMode) {
+          if (index === playIndex) span.classList.add('next');
+          else if (index === playIndex + 1) span.classList.add('next-next');
+        }
+
+        span.textContent = note.name;
+        
+        // ★ ここでクリック／タッチで再生可能にする
+        span.addEventListener('pointerdown', () => playNote(note.freq));
+        
+        logDisplay.appendChild(span);
+      });
+      logDisplay.appendChild(document.createTextNode(' '));
     } else {
+      const span = document.createElement('span');
+      span.className = 'log-note';
+      
+      if (isPlayMode) {
+        if (index === playIndex) span.classList.add('next');
+        else if (index === playIndex + 1) span.classList.add('next-next');
+      }
+
       span.textContent = group.name;
-    }
-    
-    logDisplay.appendChild(span);
-    
-    if (index < playLog.length - 1) {
+
+      // ★ 単音の再生
+      span.addEventListener('pointerdown', () => playNote(group.freq));
+
+      logDisplay.appendChild(span);
       logDisplay.appendChild(document.createTextNode(' '));
     }
   });
+
+  logDisplay.scrollTop = logDisplay.scrollHeight;
+}
   
   logDisplay.scrollTop = logDisplay.scrollHeight;
 }
