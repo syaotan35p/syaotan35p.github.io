@@ -302,11 +302,16 @@ window.visualViewport?.addEventListener("resize", setRealVH);
 
 
 /*const params = new URLSearchParams(window.location.search);*/
-// Twitterの"&"置き換え対策、クエリを#で取得する
 // ハッシュパラメータを取得
-const hash = window.location.hash.slice(1); // # を除く
-const params = new URLSearchParams(hash);
-  
+/* URLパラメータ取得（Twitterの &amp; に対応） */
+let queryString = window.location.search || window.location.hash;
+queryString = queryString.replace(/&amp;/g, '&');
+
+if (queryString.startsWith('#') || queryString.startsWith('?')) {
+  queryString = queryString.slice(1);
+}
+
+const params = new URLSearchParams(queryString);
 const startKey = parseInt(params.get('start') || '0');
 const numKeys = parseInt(params.get('keys') || '24');
 let showLabels = params.get('labels') !== 'false';
