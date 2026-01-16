@@ -348,10 +348,20 @@ const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
 skipFirstBlack = false;
 
 if (isBoundaryBlack && notes.length > half) {
-  // 境界が黒鍵の場合、上段に含めて下段ではスキップ
-  topSlice = notes.slice(0, half + 1);
-  bottomSlice = notes.slice(half);
-  skipFirstBlack = true;
+  // 境界が黒鍵の場合、一旦上段に含めてテスト
+  const testTopSlice = notes.slice(0, half + 1);
+  const testBottomSlice = notes.slice(half);
+  
+  const testTopWhiteCount = countWhiteKeys(testTopSlice, topStart);
+  const testBottomWhiteCount = countWhiteKeys(testBottomSlice, bottomStart);
+  
+  // 黒鍵を追加しても白鍵数が同じなら適用
+  if (testTopWhiteCount === testBottomWhiteCount) {
+    topSlice = testTopSlice;
+    bottomSlice = testBottomSlice;
+    skipFirstBlack = true;
+  }
+  // 白鍵数が変わる場合は境界黒鍵処理をスキップ
 }
 
 buildPiano(document.getElementById("piano-top"), topSlice, topStart, false);
