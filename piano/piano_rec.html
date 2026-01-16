@@ -74,6 +74,28 @@ html, body {
 }
 .note-label.hidden { display: none; }
 
+/* Label Toggle */
+.label-toggle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.6);
+  padding: 6px 10px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 12px;
+  z-index: 100;
+}
+
+.label-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 /* Control Panel */
 .control-panel {
   position: absolute;
@@ -99,9 +121,33 @@ html, body {
 }
 
 .ctrl-btn:active { transform: scale(0.9); }
+.ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .ctrl-btn.recording { background: #ff4444; color: white; }
 .ctrl-btn.playing { background: #44ff44; color: white; }
+
+/* Undo Button */
+.undo-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  font-size: 40px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  transition: transform 0.1s;
+  z-index: 99;
+  display: none;
+}
+
+.undo-btn.visible { display: block; }
+.undo-btn:active { transform: translate(-50%, -50%) scale(0.9); }
+.undo-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* Log Display */
 .log-display {
@@ -118,6 +164,8 @@ html, body {
   overflow-y: auto;
   display: none;
   z-index: 100;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .log-display.visible { display: block; }
@@ -129,6 +177,64 @@ html, body {
 .log-display::-webkit-scrollbar-thumb {
   background: rgba(255,255,255,0.5);
   border-radius: 2px;
+}
+
+.log-note { display: inline; }
+.log-note.next { color: #66ff66; font-weight: bold; }
+.log-note.next-next { color: #ccffcc; }
+
+/* Confirmation Dialog */
+.confirm-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.confirm-dialog.visible { display: flex; }
+
+.confirm-box {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 280px;
+}
+
+.confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.confirm-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.confirm-buttons button {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.confirm-yes {
+  background: #ff4444;
+  color: white;
+}
+
+.confirm-no {
+  background: #ddd;
+  color: #333;
 }
 
 /* Orientation */
@@ -153,14 +259,30 @@ html, body {
     <div class="piano" id="piano-bottom"></div>
   </div>
 
+  <div class="label-toggle">
+    <input type="checkbox" id="label-checkbox" checked>
+    <label for="label-checkbox">音階表示</label>
+  </div>
+
   <div class="control-panel" id="control-panel">
     <button class="ctrl-btn" id="btn-record" title="録音">🔴</button>
     <button class="ctrl-btn" id="btn-play" title="再生">▶️</button>
-    <button class="ctrl-btn" id="btn-undo" title="1つ戻す">↩️</button>
     <button class="ctrl-btn" id="btn-clear" title="クリア">🗑️</button>
   </div>
 
+  <button class="undo-btn" id="btn-undo" title="1つ戻す">↩️</button>
+
   <div class="log-display" id="log-display"></div>
+
+  <div class="confirm-dialog" id="confirm-dialog">
+    <div class="confirm-box">
+      <p>本当にログをクリアしますか？</p>
+      <div class="confirm-buttons">
+        <button class="confirm-yes" id="confirm-yes">はい</button>
+        <button class="confirm-no" id="confirm-no">いいえ</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -177,12 +299,19 @@ window.visualViewport?.addEventListener("resize", setRealVH);
 const params = new URLSearchParams(window.location.search);
 const startKey = parseInt(params.get('start') || '0');
 const numKeys = parseInt(params.get('keys') || '24');
-const showLabels = params.get('labels') !== 'false';
+let showLabels = params.get('labels') !== 'false';
 const copyMode = params.get('copy') === 'true';
 const toneType = params.get('tone') || 'sine';
 
 /* Audio */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// iOS Safari対策：初回タップでAudioContextを再開
+document.addEventListener("pointerdown", () => {
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+}, { once: true });
 
 function playNote(freq) {
   const osc = audioCtx.createOscillator();
@@ -220,7 +349,6 @@ const whitePattern = [0,2,4,5,7,9,11];
 function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = false) {
   container.innerHTML = "";
   
-  // 白鍵と黒鍵を分けて処理
   const whiteKeyData = [];
   const blackKeyData = [];
   
@@ -230,14 +358,12 @@ function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = fals
     if (whitePattern.includes(actualIndex)) {
       whiteKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
     } else {
-      // skipFirstBlackがtrueで、かつ最初の黒鍵の場合はスキップ
       if (!(skipFirstBlack && i === 0)) {
         blackKeyData.push({ note, localIndex: i, globalIndex, actualIndex });
       }
     }
   });
 
-  // 白鍵を作成
   whiteKeyData.forEach(data => {
     const key = document.createElement("div");
     key.className = "white-key";
@@ -255,9 +381,7 @@ function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = fals
   const whiteW = 100 / whiteKeyData.length;
   const blackW = whiteW * 0.7;
 
-  // 黒鍵を配置
   blackKeyData.forEach(data => {
-    // このslice内で、この黒鍵より前にある白鍵の数を数える
     let whiteCountBefore = 0;
     for (let j = 0; j < data.localIndex; j++) {
       const checkGlobalIndex = sliceStartIndex + j;
@@ -279,11 +403,9 @@ function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = fals
 
     bk.style.width = blackW + "%";
     
-    // 左端の黒鍵（このslice内で左に白鍵がない場合）は左端から少しだけはみ出す
     if (whiteCountBefore === 0) {
       bk.style.left = "-" + (blackW / 2) + "%";
     } else {
-      // 通常の黒鍵は白鍵の境界線上に配置
       bk.style.left = whiteCountBefore * whiteW - blackW / 2 + "%";
     }
 
@@ -291,7 +413,6 @@ function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = fals
   });
 }
 
-// 白鍵の数を数える関数
 function countWhiteKeys(slice, startIndex) {
   let count = 0;
   slice.forEach((note, i) => {
@@ -307,29 +428,24 @@ function countWhiteKeys(slice, startIndex) {
 buildPiano(document.getElementById("piano-single"), notes, 0, false);
 
 // 2列モード用の分割（白鍵数を揃える）
-let topSlice, bottomSlice, topStart, bottomStart, skipFirstBlack;
-
 let half = Math.floor(notes.length / 2);
-topSlice = notes.slice(0, half);
-bottomSlice = notes.slice(half);
-topStart = 0;
-bottomStart = half;
+let topSlice = notes.slice(0, half);
+let bottomSlice = notes.slice(half);
+let topStart = 0;
+let bottomStart = half;
 
-// 上下の白鍵数をカウント
 let topWhiteCount = countWhiteKeys(topSlice, topStart);
 let bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
 
-// 白鍵数が異なる場合、調整（最大12回まで試行）
+// 白鍵数調整
 let attempts = 0;
 while (topWhiteCount !== bottomWhiteCount && attempts < 12) {
   attempts++;
   
   if (topWhiteCount < bottomWhiteCount) {
-    // 上段が少ない場合、上段に1音追加
     half++;
     if (half >= notes.length) break;
   } else {
-    // 下段が少ない場合、下段に1音追加（=上段を1音減らす）
     half--;
     if (half <= 0) break;
   }
@@ -342,30 +458,34 @@ while (topWhiteCount !== bottomWhiteCount && attempts < 12) {
   bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
 }
 
-// 境界が黒鍵かチェック
+// 境界黒鍵処理（白鍵数は維持）
 const boundaryIndex = (startKey + half) % 12;
 const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
-skipFirstBlack = false;
+let skipFirstBlack = false;
 
 if (isBoundaryBlack && notes.length > half) {
-  // 境界が黒鍵の場合、一旦上段に含めてテスト
-  const testTopSlice = notes.slice(0, half + 1);
-  const testBottomSlice = notes.slice(half);
-  
-  const testTopWhiteCount = countWhiteKeys(testTopSlice, topStart);
-  const testBottomWhiteCount = countWhiteKeys(testBottomSlice, bottomStart);
-  
-  // 黒鍵を追加しても白鍵数が同じなら適用
-  if (testTopWhiteCount === testBottomWhiteCount) {
-    topSlice = testTopSlice;
-    bottomSlice = testBottomSlice;
-    skipFirstBlack = true;
-  }
-  // 白鍵数が変わる場合は境界黒鍵処理をスキップ
+  topSlice = notes.slice(0, half + 1);
+  bottomSlice = notes.slice(half);
+  skipFirstBlack = true;
 }
 
 buildPiano(document.getElementById("piano-top"), topSlice, topStart, false);
 buildPiano(document.getElementById("piano-bottom"), bottomSlice, bottomStart, skipFirstBlack);
+
+/* Label Toggle */
+const labelCheckbox = document.getElementById('label-checkbox');
+labelCheckbox.checked = showLabels;
+
+labelCheckbox.addEventListener('change', (e) => {
+  showLabels = e.target.checked;
+  document.querySelectorAll('.note-label').forEach(label => {
+    if (showLabels) {
+      label.classList.remove('hidden');
+    } else {
+      label.classList.add('hidden');
+    }
+  });
+});
 
 /* ===== Copy Mode ===== */
 let playLog = [];
@@ -381,12 +501,14 @@ const btnPlay = document.getElementById('btn-play');
 const btnUndo = document.getElementById('btn-undo');
 const btnClear = document.getElementById('btn-clear');
 const logDisplay = document.getElementById('log-display');
+const confirmDialog = document.getElementById('confirm-dialog');
+const confirmYes = document.getElementById('confirm-yes');
+const confirmNo = document.getElementById('confirm-no');
 
 if (copyMode) {
   controlPanel.classList.add('visible');
   logDisplay.classList.add('visible');
   
-  // localStorageからログを読み込み
   const savedLog = localStorage.getItem('pianoLog');
   if (savedLog) {
     try {
@@ -404,13 +526,34 @@ function saveLog() {
 
 function updateLogDisplay() {
   if (!copyMode) return;
-  const displayText = playLog.map(group => {
-    if (Array.isArray(group)) {
-      return '[' + group.map(n => n.name).join('+') + ']';
+  
+  logDisplay.innerHTML = '';
+  
+  playLog.forEach((group, index) => {
+    const span = document.createElement('span');
+    span.className = 'log-note';
+    
+    if (isPlayMode) {
+      if (index === playIndex) {
+        span.classList.add('next');
+      } else if (index === playIndex + 1) {
+        span.classList.add('next-next');
+      }
     }
-    return group.name;
-  }).join(' ');
-  logDisplay.textContent = displayText;
+    
+    if (Array.isArray(group)) {
+      span.textContent = '[' + group.map(n => n.name).join('+') + ']';
+    } else {
+      span.textContent = group.name;
+    }
+    
+    logDisplay.appendChild(span);
+    
+    if (index < playLog.length - 1) {
+      logDisplay.appendChild(document.createTextNode(' '));
+    }
+  });
+  
   logDisplay.scrollTop = logDisplay.scrollHeight;
 }
 
@@ -419,7 +562,6 @@ function addToLog(freq, name) {
     const now = Date.now();
     const note = { freq, name };
 
-    // 2本以上の指が同時に押されている場合のみ和音判定を許可
     const allowChord = activePointers.size >= 2;
 
     if (
@@ -453,7 +595,6 @@ function clearHighlight() {
 function highlightNextKey() {
   clearHighlight();
   
-  // 次のキーをハイライト
   if (playIndex < playLog.length) {
     const target = playLog[playIndex];
     if (Array.isArray(target)) {
@@ -467,7 +608,6 @@ function highlightNextKey() {
     }
   }
   
-  // 次の次のキーを薄くハイライト（先読み表示）
   if (playIndex + 1 < playLog.length) {
     const nextNext = playLog[playIndex + 1];
     if (Array.isArray(nextNext)) {
@@ -479,6 +619,18 @@ function highlightNextKey() {
       const keys = document.querySelectorAll(`[data-freq="${nextNext.freq}"]`);
       keys.forEach(k => k.classList.add('next-next-target'));
     }
+  }
+  
+  updateLogDisplay();
+}
+
+function updateUndoButton() {
+  if (isRecording && playLog.length > 0) {
+    btnUndo.classList.add('visible');
+    btnUndo.disabled = false;
+  } else {
+    btnUndo.classList.remove('visible');
+    btnUndo.disabled = true;
   }
 }
 
@@ -494,6 +646,7 @@ btnRecord.addEventListener('click', () => {
     btnPlay.classList.remove('playing');
     clearHighlight();
   }
+  updateUndoButton();
 });
 
 btnPlay.addEventListener('click', () => {
@@ -509,30 +662,39 @@ btnPlay.addEventListener('click', () => {
     highlightNextKey();
   } else {
     clearHighlight();
+    updateLogDisplay();
   }
+  updateUndoButton();
 });
 
 btnUndo.addEventListener('click', () => {
-  if (playLog.length > 0) {
+  if (playLog.length > 0 && isRecording) {
     playLog.pop();
     updateLogDisplay();
     saveLog();
-    if (isPlayMode) {
-      if (playIndex >= playLog.length) {
-        playIndex = playLog.length - 1;
-      }
-      highlightNextKey();
-    }
+    updateUndoButton();
   }
 });
 
 btnClear.addEventListener('click', () => {
+  confirmDialog.classList.add('visible');
+});
+
+confirmYes.addEventListener('click', () => {
   playLog = [];
   playIndex = 0;
   clearHighlight();
   updateLogDisplay();
   saveLog();
+  confirmDialog.classList.remove('visible');
+  updateUndoButton();
 });
+
+confirmNo.addEventListener('click', () => {
+  confirmDialog.classList.remove('visible');
+});
+
+updateUndoButton();
 
 /* ===== Pointer Events Engine ===== */
 
@@ -597,6 +759,7 @@ document.addEventListener("pointerdown", e => {
     if (isRecording) {
       recordedFreqsInGesture.add(freq);
       addToLog(freq, name);
+      updateUndoButton();
     }
 
     e.target.setPointerCapture(e.pointerId);
@@ -619,6 +782,7 @@ document.addEventListener("pointermove", e => {
     if (isRecording && !recordedFreqsInGesture.has(freq)) {
       recordedFreqsInGesture.add(freq);
       addToLog(freq, name);
+      updateUndoButton();
     }
     
     activePointers.set(e.pointerId, newKey);
