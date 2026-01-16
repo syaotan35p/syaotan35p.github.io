@@ -407,6 +407,11 @@ btnRecord.addEventListener('click', () => {
     isPlayMode = false;
     btnPlay.classList.remove('playing');
     clearHighlight();
+  } else {
+    // 録音開始時に再生モードを解除
+    isPlayMode = false;
+    btnPlay.classList.remove('playing');
+    clearHighlight();
   }
 });
 
@@ -453,6 +458,7 @@ btnClear.addEventListener('click', () => {
 
 const activePointers = new Map();
 const currentChordKeys = new Set(); // 現在押されている和音のキー
+const recordedFreqsInGesture = new Set(); // 現在のジェスチャーで既に記録した音
 
 function getKeyFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -513,7 +519,12 @@ document.addEventListener("pointerdown", e => {
     activePointers.set(e.pointerId, key);
     key.classList.add("active");
     playNote(freq);
-    addToLog(freq, name);
+    
+    // 録音時：このポインターで初めて記録する音のみ追加
+    if (isRecording) {
+      recordedFreqsInGesture.add(freq);
+      addToLog(freq, name);
+    }
 
     e.target.setPointerCapture(e.pointerId);
   }
@@ -531,7 +542,13 @@ document.addEventListener("pointermove", e => {
     const freq = parseFloat(newKey.dataset.freq);
     const name = newKey.dataset.name;
     playNote(freq);
-    addToLog(freq, name);
+    
+    // スワイプ時：まだ記録していない音のみ追加
+    if (isRecording && !recordedFreqsInGesture.has(freq)) {
+      recordedFreqsInGesture.add(freq);
+      addToLog(freq, name);
+    }
+    
     activePointers.set(e.pointerId, newKey);
   }
 });
@@ -540,6 +557,11 @@ function releasePointer(e) {
   const key = activePointers.get(e.pointerId);
   if (key) key.classList.remove("active");
   activePointers.delete(e.pointerId);
+  
+  // ポインターが全て離れたらジェスチャー終了
+  if (activePointers.size === 0) {
+    recordedFreqsInGesture.clear();
+  }
 }
 
 document.addEventListener("pointerup", releasePointer);
