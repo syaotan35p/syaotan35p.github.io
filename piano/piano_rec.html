@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Mobile Piano</title>
 
+<!-- PWA呼び出しコード -->
+<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('PWA準備完了！'))
+      .catch((err) => console.log('PWA失敗:', err));
+  }
+</script>
+
 <style>
 :root { --vh: 1vh; }
 
