@@ -48,9 +48,7 @@ html, body {
 /* Keys */
 .white-key {
   flex: 1;
-/*  background: #fff; */
   background: #ffc8d5;
-/*  border: 1px solid #000; */
   border: 1px solid #ff5f83;
   position: relative;
 }
@@ -59,7 +57,6 @@ html, body {
   position: absolute;
   top: 0;
   height: 50%;
-/*  background: #000; */
   background: #ff6a8c;
   z-index: 10;
   border-radius: 0 0 10px 10px;
@@ -171,22 +168,21 @@ html, body {
   bottom: 8px;
   left: 8px;
   right: 8px;
-  height: 80px;             /* 高さ固定 */
+  height: 80px;
   background: rgba(0,0,0,0.8);
   color: #fff;
   padding: 8px;
   border-radius: 8px;
-  font-size: 2.5em;         /* 文字を大きく */
-  overflow-x: auto;         /* 横スクロール */
-  overflow-y: hidden;       /* 縦スクロール不要 */
+  font-size: 2.5em;
+  overflow-x: auto;
+  overflow-y: hidden;
   display: none;
   z-index: 100;
-  white-space: nowrap;       /* 折り返さず1行 */
+  white-space: nowrap;
 }
 
 .log-display.visible { display: block; }
 
-/* スクロールバー調整 */
 .log-display::-webkit-scrollbar {
   height: 10px;
 }
@@ -197,9 +193,12 @@ html, body {
 }
 
 /* 各音階 */
-.log-note { display: inline-block; cursor: pointer; padding: 0 4px; }
-.log-note.next { color: #66ff66; font-weight: bold; }
-.log-note.next-next { color: #ccffcc; }
+.log-note { 
+  display: inline-block; 
+  cursor: pointer; 
+  padding: 2px 4px;
+  border-radius: 4px;
+}
 
 /* Confirmation Dialog */
 .confirm-dialog {
@@ -314,11 +313,6 @@ window.addEventListener("resize", setRealVH);
 window.visualViewport?.addEventListener("resize", setRealVH);
 
 /* URLパラメータ取得 */
-
-
-/*const params = new URLSearchParams(window.location.search);*/
-// ハッシュパラメータを取得
-/* URLパラメータ取得（Twitterの &amp; に対応） */
 let queryString = window.location.search || window.location.hash;
 queryString = queryString.replace(/&amp;/g, '&');
 
@@ -333,10 +327,36 @@ let showLabels = params.get('labels') !== 'false';
 const copyMode = params.get('copy') === 'true';
 const toneType = params.get('tone') || 'sine';
 
+/* ===== リズム設定 ===== */
+const TEMPO_BPM = 120;
+const MS_PER_BEAT = 60000 / TEMPO_BPM;        // 1拍 = 500ms
+const MIN_UNIT = 0.25;                         // 最小単位 = 0.25拍
+const MS_PER_UNIT = MS_PER_BEAT * MIN_UNIT;   // 125ms
+
+// 時間を最小単位に丸める
+function roundToBeat(ms) {
+  return Math.round(ms / MS_PER_UNIT) * MS_PER_UNIT;
+}
+
+// ミリ秒を拍数に変換
+function msToBeat(ms) {
+  return Math.round(ms / MS_PER_UNIT) * MIN_UNIT;
+}
+
+// 拍数に応じた色を取得
+function getColorByDuration(durationMs) {
+  const beats = msToBeat(durationMs);
+  
+  if (beats <= 0.25) return '#999';      // 16分音符
+  if (beats <= 0.5) return '#666';       // 8分音符
+  if (beats <= 1) return '#fff';         // 4分音符
+  if (beats <= 2) return '#4499ff';      // 2分音符
+  return '#9966ff';                      // 全音符
+}
+
 /* Audio */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-// iOS Safari対策：初回タップでAudioContextを再開
 document.addEventListener("pointerdown", () => {
   if (audioCtx.state === "suspended") {
     audioCtx.resume();
@@ -457,7 +477,6 @@ function countWhiteKeys(slice, startIndex) {
 
 buildPiano(document.getElementById("piano-single"), notes, 0, false);
 
-// 2列モード用の分割（白鍵数を揃える）
 let half = Math.floor(notes.length / 2);
 let topSlice = notes.slice(0, half);
 let bottomSlice = notes.slice(half);
@@ -467,7 +486,6 @@ let bottomStart = half;
 let topWhiteCount = countWhiteKeys(topSlice, topStart);
 let bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
 
-// 白鍵数調整
 let attempts = 0;
 while (topWhiteCount !== bottomWhiteCount && attempts < 12) {
   attempts++;
@@ -488,7 +506,6 @@ while (topWhiteCount !== bottomWhiteCount && attempts < 12) {
   bottomWhiteCount = countWhiteKeys(bottomSlice, bottomStart);
 }
 
-// 境界黒鍵処理（白鍵数は維持）
 const boundaryIndex = (startKey + half) % 12;
 const isBoundaryBlack = !whitePattern.includes(boundaryIndex);
 let skipFirstBlack = false;
@@ -517,13 +534,40 @@ labelCheckbox.addEventListener('change', (e) => {
   });
 });
 
-/* ===== Copy Mode ===== */
+/* ===== 新しいデータ構造とユーティリティ ===== */
 let playLog = [];
+let nextNoteId = 1;
+let selectedNoteIds = new Set();
+
+// ユニークID生成
+function generateNoteId() {
+  return `note_${Date.now()}_${nextNoteId++}`;
+}
+
+// 音イベント作成
+function createNoteEvent(notesArray, timestamp = Date.now()) {
+  return {
+    id: generateNoteId(),
+    timestamp: timestamp,
+    duration: 0,
+    notes: notesArray,
+    selected: false,
+    metadata: {}
+  };
+}
+
+// IDで音イベントを検索
+function findNoteById(id) {
+  return playLog.find(note => note.id === id);
+}
+
+/* ===== Copy Mode ===== */
 let isRecording = false;
 let isPlayMode = false;
 let playIndex = 0;
-let lastNoteTime = 0;
-const CHORD_THRESHOLD = 40;
+
+// 録音中の音ごとの開始時刻を記録
+const noteStartTimes = new Map();
 
 const controlPanel = document.getElementById('control-panel');
 const btnRecord = document.getElementById('btn-record');
@@ -542,7 +586,13 @@ if (copyMode) {
   const savedLog = localStorage.getItem('pianoLog');
   if (savedLog) {
     try {
-      playLog = JSON.parse(savedLog);
+      const parsed = JSON.parse(savedLog);
+      // 旧形式の互換性チェック
+      if (parsed.length > 0 && parsed[0].id) {
+        playLog = parsed;
+      } else {
+        playLog = [];
+      }
       updateLogDisplay();
     } catch (e) {
       playLog = [];
@@ -561,34 +611,35 @@ function updateLogDisplay() {
 
   let nextTargetSpan = null;
 
-  playLog.forEach((group, index) => {
+  playLog.forEach((noteEvent, index) => {
     const span = document.createElement('span');
     span.className = 'log-note';
     span.dataset.index = index;
 
-    // 再生モードハイライト
+    // 拍数による文字色
+    span.style.color = getColorByDuration(noteEvent.duration);
+    
+    // 再生モード時の背景色
     if (isPlayMode) {
       if (index === playIndex) {
-        span.classList.add('next');
-        nextTargetSpan = span; // スクロール対象
+        span.style.background = '#66ff66';
+        nextTargetSpan = span;
       } else if (index === playIndex + 1) {
-        span.classList.add('next-next');
+        span.style.background = '#ccffcc';
       }
     }
 
-    if (Array.isArray(group)) {
-      span.textContent = '[' + group.map(n => n.name).join('+') + ']';
-
-      // ログタッチで再生（和音）
-      span.addEventListener('pointerdown', () => {
-        group.forEach(note => playNote(note.freq));
-      });
+    // 表示テキスト
+    if (noteEvent.notes.length > 1) {
+      span.textContent = '[' + noteEvent.notes.map(n => n.name).join('+') + ']';
     } else {
-      span.textContent = group.name;
-
-      // ログタッチで再生（単音）
-      span.addEventListener('pointerdown', () => playNote(group.freq));
+      span.textContent = noteEvent.notes[0].name;
     }
+
+    // タップで再生
+    span.addEventListener('pointerdown', () => {
+      noteEvent.notes.forEach(note => playNote(note.freq));
+    });
 
     logDisplay.appendChild(span);
 
@@ -597,10 +648,8 @@ function updateLogDisplay() {
     }
   });
 
-  // ===== スクロール制御 =====
-
+  // スクロール制御
   if (isPlayMode && nextTargetSpan) {
-    // 再生中：次に押す音階を中央寄せで表示
     const containerRect = logDisplay.getBoundingClientRect();
     const targetRect = nextTargetSpan.getBoundingClientRect();
 
@@ -611,37 +660,7 @@ function updateLogDisplay() {
 
     logDisplay.scrollLeft += offset;
   } else {
-    // 通常時：末尾追従
     logDisplay.scrollLeft = logDisplay.scrollWidth;
-  }
-}
-
-function addToLog(freq, name) {
-  if (isRecording && !isPlayMode) {
-    const now = Date.now();
-    const note = { freq, name };
-
-    const allowChord = activePointers.size >= 2;
-
-    if (
-      allowChord &&
-      now - lastNoteTime < CHORD_THRESHOLD &&
-      playLog.length > 0
-    ) {
-      const lastItem = playLog[playLog.length - 1];
-
-      if (Array.isArray(lastItem)) {
-        lastItem.push(note);
-      } else {
-        playLog[playLog.length - 1] = [lastItem, note];
-      }
-    } else {
-      playLog.push(note);
-    }
-
-    lastNoteTime = now;
-    updateLogDisplay();
-    saveLog();
   }
 }
 
@@ -656,28 +675,18 @@ function highlightNextKey() {
   
   if (playIndex < playLog.length) {
     const target = playLog[playIndex];
-    if (Array.isArray(target)) {
-      target.forEach(note => {
-        const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
-        keys.forEach(k => k.classList.add('next-target'));
-      });
-    } else {
-      const keys = document.querySelectorAll(`[data-freq="${target.freq}"]`);
+    target.notes.forEach(note => {
+      const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
       keys.forEach(k => k.classList.add('next-target'));
-    }
+    });
   }
   
   if (playIndex + 1 < playLog.length) {
     const nextNext = playLog[playIndex + 1];
-    if (Array.isArray(nextNext)) {
-      nextNext.forEach(note => {
-        const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
-        keys.forEach(k => k.classList.add('next-next-target'));
-      });
-    } else {
-      const keys = document.querySelectorAll(`[data-freq="${nextNext.freq}"]`);
+    nextNext.notes.forEach(note => {
+      const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
       keys.forEach(k => k.classList.add('next-next-target'));
-    }
+    });
   }
   
   updateLogDisplay();
@@ -755,11 +764,10 @@ confirmNo.addEventListener('click', () => {
 
 updateUndoButton();
 
-/* ===== Pointer Events Engine ===== */
+/* ===== Pointer Events Engine (音の長さ記録対応) ===== */
 
 const activePointers = new Map();
 const currentChordKeys = new Set();
-const recordedFreqsInGesture = new Set();
 
 function getKeyFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -777,36 +785,24 @@ document.addEventListener("pointerdown", e => {
     if (playIndex < playLog.length) {
       const target = playLog[playIndex];
       
-      if (Array.isArray(target)) {
-        const matchedNote = target.find(note => Math.abs(freq - note.freq) < 0.1);
-        if (matchedNote) {
-          key.classList.add("active");
-          playNote(freq);
-          currentChordKeys.add(freq);
-          activePointers.set(e.pointerId, key);
-          e.target.setPointerCapture(e.pointerId);
-          
-          const allPressed = target.every(note => {
-            return Array.from(currentChordKeys).some(pressedFreq => 
-              Math.abs(pressedFreq - note.freq) < 0.1
-            );
-          });
-          
-          if (allPressed) {
-            playIndex++;
-            currentChordKeys.clear();
-            setTimeout(() => highlightNextKey(), 100);
-          }
-        }
-      } else {
-        if (Math.abs(freq - target.freq) < 0.1) {
-          key.classList.add("active");
-          playNote(freq);
+      const matchedNote = target.notes.find(note => Math.abs(freq - note.freq) < 0.1);
+      if (matchedNote) {
+        key.classList.add("active");
+        playNote(freq);
+        currentChordKeys.add(freq);
+        activePointers.set(e.pointerId, key);
+        e.target.setPointerCapture(e.pointerId);
+        
+        const allPressed = target.notes.every(note => {
+          return Array.from(currentChordKeys).some(pressedFreq => 
+            Math.abs(pressedFreq - note.freq) < 0.1
+          );
+        });
+        
+        if (allPressed) {
           playIndex++;
-          highlightNextKey();
-          
-          activePointers.set(e.pointerId, key);
-          e.target.setPointerCapture(e.pointerId);
+          currentChordKeys.clear();
+          setTimeout(() => highlightNextKey(), 100);
         }
       }
     }
@@ -815,10 +811,10 @@ document.addEventListener("pointerdown", e => {
     key.classList.add("active");
     playNote(freq);
     
+    // 録音モード：音の開始時刻を記録
     if (isRecording) {
-      recordedFreqsInGesture.add(freq);
-      addToLog(freq, name);
-      updateUndoButton();
+      const noteKey = `${e.pointerId}_${freq}`;
+      noteStartTimes.set(noteKey, Date.now());
     }
 
     e.target.setPointerCapture(e.pointerId);
@@ -835,13 +831,12 @@ document.addEventListener("pointermove", e => {
     prevKey.classList.remove("active");
     newKey.classList.add("active");
     const freq = parseFloat(newKey.dataset.freq);
-    const name = newKey.dataset.name;
     playNote(freq);
     
-    if (isRecording && !recordedFreqsInGesture.has(freq)) {
-      recordedFreqsInGesture.add(freq);
-      addToLog(freq, name);
-      updateUndoButton();
+    // 録音モード：新しい音の開始時刻を記録
+    if (isRecording) {
+      const noteKey = `${e.pointerId}_${freq}`;
+      noteStartTimes.set(noteKey, Date.now());
     }
     
     activePointers.set(e.pointerId, newKey);
@@ -850,12 +845,41 @@ document.addEventListener("pointermove", e => {
 
 function releasePointer(e) {
   const key = activePointers.get(e.pointerId);
-  if (key) key.classList.remove("active");
-  activePointers.delete(e.pointerId);
-  
-  if (activePointers.size === 0) {
-    recordedFreqsInGesture.clear();
+  if (key) {
+    key.classList.remove("active");
+    
+    // 録音モード：音の長さを計算して記録
+    if (isRecording && !isPlayMode) {
+      const freq = parseFloat(key.dataset.freq);
+      const name = key.dataset.name;
+      const noteKey = `${e.pointerId}_${freq}`;
+      
+      if (noteStartTimes.has(noteKey)) {
+        const startTime = noteStartTimes.get(noteKey);
+        const endTime = Date.now();
+        const duration = roundToBeat(endTime - startTime);
+        
+        // 音符情報を作成
+        const noteInfo = {
+          freq: freq,
+          name: name,
+          octave: allNotes.find(n => Math.abs(n.freq - freq) < 0.1)?.octave || 0
+        };
+        
+        // 新しい音イベントを記録
+        const noteEvent = createNoteEvent([noteInfo], startTime);
+        noteEvent.duration = duration;
+        playLog.push(noteEvent);
+        
+        noteStartTimes.delete(noteKey);
+        updateLogDisplay();
+        saveLog();
+        updateUndoButton();
+      }
+    }
   }
+  
+  activePointers.delete(e.pointerId);
 }
 
 document.addEventListener("pointerup", releasePointer);
