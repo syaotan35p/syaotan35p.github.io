@@ -1,8 +1,8 @@
 {
-  "name": "Sakura Piano Portable",
-  "short_name": "SakuraPiano",
+  "name": "mi35Piano Portable",
+  "short_name": "mi35Piano",
   "description": "1ファイルで動作する軽量ピアノツール",
-  "start_url": "piano_rec.html",
+  "start_url": "mi35Piano.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffc0cb",
