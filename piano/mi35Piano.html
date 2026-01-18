@@ -1100,9 +1100,17 @@ function getKeyFromPoint(x, y) {
   return el?.closest(".white-key, .black-key");
 }
 
-document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("contextmenu", e => {
+  if (!e.target.closest('.settings-modal')) {
+    e.preventDefault();
+  }
+});
 
 document.addEventListener("pointerdown", e => {
+  if (e.target.closest('.settings-modal')) {
+    return;
+  }
+  
   e.preventDefault();
   e.stopPropagation();
   
@@ -1165,6 +1173,10 @@ document.addEventListener("pointerdown", e => {
 });
 
 document.addEventListener("pointermove", e => {
+  if (e.target.closest('.settings-modal')) {
+    return;
+  }
+  
   e.preventDefault();
   e.stopPropagation();
   
@@ -1219,6 +1231,10 @@ document.addEventListener("pointermove", e => {
 });
 
 function releasePointer(e) {
+  if (e.target.closest('.settings-modal')) {
+    return;
+  }
+  
   e.preventDefault();
   e.stopPropagation();
   
