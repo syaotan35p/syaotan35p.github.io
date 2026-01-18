@@ -1,6 +1,6 @@
-const CACHE_NAME = 'sakura-piano-v1';
+const CACHE_NAME = 'mi35Piano-v1';
 const urlsToCache = [
-  'piano_rec.html',
+  'mi35Piano.html',
   'manifest.json'
 ];
 
