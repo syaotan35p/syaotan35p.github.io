@@ -94,11 +94,33 @@ img {
 }
 .note-label.hidden { display: none; }
 
+/* Settings Button */
+.settings-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 101;
+  transition: transform 0.2s;
+}
+
+.settings-btn:active {
+  transform: scale(0.9);
+}
+
 /* Label Toggle */
 .label-toggle {
   position: absolute;
   top: 8px;
-  left: 8px;
+  left: 58px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -114,6 +136,127 @@ img {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+/* Settings Modal */
+.settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.settings-modal.visible {
+  display: flex;
+}
+
+.settings-content {
+  background: rgba(20,20,20,0.95);
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 320px;
+  width: 90%;
+  color: #fff;
+}
+
+.settings-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.settings-row {
+  margin-bottom: 16px;
+}
+
+.settings-label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: #ccc;
+}
+
+.settings-input,
+.settings-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.settings-input:focus,
+.settings-select:focus {
+  outline: none;
+  border-color: #66ff66;
+}
+
+.settings-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.settings-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.settings-checkbox-label {
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.settings-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.settings-btn-apply,
+.settings-btn-close {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.settings-btn-apply {
+  background: #66ff66;
+  color: #000;
+}
+
+.settings-btn-close {
+  background: #555;
+  color: #fff;
+}
+
+.settings-btn-apply:active,
+.settings-btn-close:active {
+  transform: scale(0.95);
+}
+
+.settings-info {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
 }
 
 /* Control Panel */
@@ -199,7 +342,6 @@ img {
   border-radius: 3px;
 }
 
-/* 各音階 */
 .log-note { 
   display: inline-block; 
   cursor: pointer; 
@@ -283,6 +425,8 @@ img {
     <div class="piano" id="piano-bottom"></div>
   </div>
 
+  <div class="settings-btn" id="settings-btn">⚙️</div>
+
   <div class="label-toggle">
     <input type="checkbox" id="label-checkbox" checked>
     <label for="label-checkbox">音階表示</label>
@@ -307,6 +451,61 @@ img {
       </div>
     </div>
   </div>
+
+  <div class="settings-modal" id="settings-modal">
+    <div class="settings-content">
+      <h2 class="settings-title">設定</h2>
+      
+      <div class="settings-row">
+        <label class="settings-label">開始音</label>
+        <select class="settings-select" id="setting-start-key">
+          <option value="0">ド (C)</option>
+          <option value="1">ド# (C#)</option>
+          <option value="2">レ (D)</option>
+          <option value="3">レ# (D#)</option>
+          <option value="4">ミ (E)</option>
+          <option value="5">ファ (F)</option>
+          <option value="6">ファ# (F#)</option>
+          <option value="7">ソ (G)</option>
+          <option value="8">ソ# (G#)</option>
+          <option value="9">ラ (A)</option>
+          <option value="10">ラ# (A#)</option>
+          <option value="11">シ (B)</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <label class="settings-label">総鍵盤数</label>
+        <input type="number" class="settings-input" id="setting-num-keys" min="1" max="48" value="24">
+        <div class="settings-info">1〜48の範囲で指定</div>
+      </div>
+
+      <div class="settings-row">
+        <label class="settings-label">音の種類</label>
+        <select class="settings-select" id="setting-tone">
+          <option value="sine">サイン波（柔らかい）</option>
+          <option value="square">矩形波（電子音）</option>
+          <option value="sawtooth">ノコギリ波（明るい）</option>
+          <option value="triangle">三角波（中間）</option>
+        </select>
+      </div>
+
+      <div class="settings-checkbox-row">
+        <input type="checkbox" class="settings-checkbox" id="setting-show-labels" checked>
+        <label class="settings-checkbox-label" for="setting-show-labels">音階表示</label>
+      </div>
+
+      <div class="settings-checkbox-row">
+        <input type="checkbox" class="settings-checkbox" id="setting-copy-mode">
+        <label class="settings-checkbox-label" for="setting-copy-mode">録音モード</label>
+      </div>
+
+      <div class="settings-buttons">
+        <button class="settings-btn-apply" id="settings-apply">更新</button>
+        <button class="settings-btn-close" id="settings-close">✕</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -319,7 +518,34 @@ setRealVH();
 window.addEventListener("resize", setRealVH);
 window.visualViewport?.addEventListener("resize", setRealVH);
 
-/* URLパラメータ取得 */
+/* ===== 設定管理 ===== */
+const DEFAULT_SETTINGS = {
+  startKey: 0,
+  numKeys: 24,
+  showLabels: true,
+  copyMode: false,
+  toneType: 'sine'
+};
+
+function loadSettings() {
+  const saved = localStorage.getItem('pianoSettings');
+  if (saved) {
+    try {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+    } catch (e) {
+      return { ...DEFAULT_SETTINGS };
+    }
+  }
+  return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettings(settings) {
+  localStorage.setItem('pianoSettings', JSON.stringify(settings));
+}
+
+const settings = loadSettings();
+
+/* URLパラメータ取得（優先） */
 let queryString = window.location.search || window.location.hash;
 queryString = queryString.replace(/&amp;/g, '&');
 
@@ -328,11 +554,11 @@ if (queryString.startsWith('#') || queryString.startsWith('?')) {
 }
 
 const params = new URLSearchParams(queryString);
-const startKey = parseInt(params.get('start') || '0');
-const numKeys = parseInt(params.get('keys') || '24');
-let showLabels = params.get('labels') !== 'false';
-const copyMode = params.get('copy') === 'true';
-const toneType = params.get('tone') || 'sine';
+const startKey = parseInt(params.get('start') || settings.startKey);
+const numKeys = parseInt(params.get('keys') || settings.numKeys);
+let showLabels = params.get('labels') !== 'false' && (params.has('labels') ? params.get('labels') === 'true' : settings.showLabels);
+const copyMode = params.get('copy') === 'true' || (!params.has('copy') && settings.copyMode);
+const toneType = params.get('tone') || settings.toneType;
 
 /* ===== リズム設定 ===== */
 const TEMPO_BPM = 120;
@@ -537,6 +763,87 @@ labelCheckbox.addEventListener('change', (e) => {
       label.classList.add('hidden');
     }
   });
+});
+
+/* ===== 設定モーダル ===== */
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const settingsClose = document.getElementById('settings-close');
+const settingsApply = document.getElementById('settings-apply');
+
+const settingStartKey = document.getElementById('setting-start-key');
+const settingNumKeys = document.getElementById('setting-num-keys');
+const settingTone = document.getElementById('setting-tone');
+const settingShowLabels = document.getElementById('setting-show-labels');
+const settingCopyMode = document.getElementById('setting-copy-mode');
+
+// 設定値を読み込み
+settingStartKey.value = startKey % 12;
+settingNumKeys.value = numKeys;
+settingTone.value = toneType;
+settingShowLabels.checked = showLabels;
+settingCopyMode.checked = copyMode;
+
+// 開始キーと総鍵盤数の矛盾チェック
+settingStartKey.addEventListener('change', validateSettings);
+settingNumKeys.addEventListener('input', validateSettings);
+
+function validateSettings() {
+  const start = parseInt(settingStartKey.value);
+  const num = parseInt(settingNumKeys.value);
+  
+  if (start + num > 48) {
+    settingNumKeys.value = 48 - start;
+  }
+  
+  if (num < 1) {
+    settingNumKeys.value = 1;
+  }
+}
+
+settingsBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  settingsModal.classList.add('visible');
+});
+
+settingsClose.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  settingsModal.classList.remove('visible');
+});
+
+settingsModal.addEventListener('click', (e) => {
+  if (e.target === settingsModal) {
+    settingsModal.classList.remove('visible');
+  }
+});
+
+settingsApply.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const newSettings = {
+    startKey: parseInt(settingStartKey.value),
+    numKeys: parseInt(settingNumKeys.value),
+    showLabels: settingShowLabels.checked,
+    copyMode: settingCopyMode.checked,
+    toneType: settingTone.value
+  };
+  
+  saveSettings(newSettings);
+  
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  
+  url.searchParams.set('start', newSettings.startKey);
+  url.searchParams.set('keys', newSettings.numKeys);
+  url.searchParams.set('labels', newSettings.showLabels);
+  url.searchParams.set('copy', newSettings.copyMode);
+  url.searchParams.set('tone', newSettings.toneType);
+  
+  window.location.href = url.toString();
 });
 
 /* ===== データ構造とユーティリティ ===== */
