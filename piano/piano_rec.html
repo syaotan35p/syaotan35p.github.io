@@ -899,16 +899,6 @@ function releasePointer(e) {
   const key = activePointers.get(e.pointerId);
   if (key) {
     key.classList.remove("active");
-    
-    if (isRecording && !isPlayMode) {
-      const freq = parseFloat(key.dataset.freq);
-      const noteKey = `${e.pointerId}_${freq}`;
-      
-      if (currentGesture.has(noteKey)) {
-        currentGesture.delete(noteKey);
-        noteStartTimes.delete(noteKey);
-      }
-    }
   }
   
   activePointers.delete(e.pointerId);
