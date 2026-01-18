@@ -683,10 +683,19 @@ function highlightNextKey() {
   
   if (playIndex + 1 < playLog.length) {
     const nextNext = playLog[playIndex + 1];
-    nextNext.notes.forEach(note => {
-      const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
-      keys.forEach(k => k.classList.add('next-next-target'));
-    });
+    
+    const isSameAsNext = playIndex < playLog.length && 
+      playLog[playIndex].notes.length === nextNext.notes.length &&
+      playLog[playIndex].notes.every((note, i) => 
+        Math.abs(note.freq - nextNext.notes[i].freq) < 0.1
+      );
+    
+    if (!isSameAsNext) {
+      nextNext.notes.forEach(note => {
+        const keys = document.querySelectorAll(`[data-freq="${note.freq}"]`);
+        keys.forEach(k => k.classList.add('next-next-target'));
+      });
+    }
   }
   
   updateLogDisplay();
@@ -751,6 +760,10 @@ btnClear.addEventListener('click', () => {
 confirmYes.addEventListener('click', () => {
   playLog = [];
   playIndex = 0;
+  isRecording = false;
+  isPlayMode = false;
+  btnRecord.classList.remove('recording');
+  btnPlay.classList.remove('playing');
   clearHighlight();
   updateLogDisplay();
   saveLog();
