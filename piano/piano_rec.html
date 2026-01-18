@@ -35,6 +35,13 @@ html, body {
   height: calc(var(--vh) * 100);
   overflow: hidden;
   font-family: "Segoe UI","Noto Sans JP",sans-serif;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 /* Layout */
@@ -767,8 +774,11 @@ function getKeyFromPoint(x, y) {
   return el?.closest(".white-key, .black-key");
 }
 
+document.addEventListener("contextmenu", e => e.preventDefault());
+
 document.addEventListener("pointerdown", e => {
   e.preventDefault();
+  e.stopPropagation();
   
   const key = getKeyFromPoint(e.clientX, e.clientY);
   if (!key) return;
@@ -830,6 +840,7 @@ document.addEventListener("pointerdown", e => {
 
 document.addEventListener("pointermove", e => {
   e.preventDefault();
+  e.stopPropagation();
   
   if (!activePointers.has(e.pointerId)) return;
 
@@ -883,6 +894,7 @@ document.addEventListener("pointermove", e => {
 
 function releasePointer(e) {
   e.preventDefault();
+  e.stopPropagation();
   
   const key = activePointers.get(e.pointerId);
   if (key) {
@@ -893,33 +905,15 @@ function releasePointer(e) {
       const noteKey = `${e.pointerId}_${freq}`;
       
       if (currentGesture.has(noteKey)) {
-        const gestureData = currentGesture.get(noteKey);
-        const endTime = Date.now();
-        
         currentGesture.delete(noteKey);
         noteStartTimes.delete(noteKey);
-        
-        if (currentGesture.size === 0) {
-          const releasedNotes = [];
-          const duration = roundToBeat(endTime - gestureStartTime);
-          
-          releasedNotes.push(gestureData.noteInfo);
-          
-          const noteEvent = createNoteEvent(releasedNotes, gestureStartTime);
-          noteEvent.duration = duration;
-          playLog.push(noteEvent);
-          
-          updateLogDisplay();
-          saveLog();
-          updateUndoButton();
-        }
       }
     }
   }
   
   activePointers.delete(e.pointerId);
   
-  if (activePointers.size === 0 && currentGesture.size > 0) {
+  if (isRecording && !isPlayMode && activePointers.size === 0 && currentGesture.size > 0) {
     const endTime = Date.now();
     const duration = roundToBeat(endTime - gestureStartTime);
     const releasedNotes = [];
