@@ -651,11 +651,15 @@ function playLogNote(freq, durationMs) {
   gain.connect(audioCtx.destination);
 
   gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-
-  const safeDuration = Math.max(durationMs, 1000) / 1000; // 最低1.0秒に変更
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + safeDuration);
   osc.start();
-  osc.stop(audioCtx.currentTime + safeDuration + 0.1);
+
+  const minDuration = 1000; // 最低1.0秒
+  const maxDuration = 4000; // 上限4秒
+  let effectiveDuration = Math.max(durationMs, minDuration);
+  effectiveDuration = Math.min(effectiveDuration, maxDuration);
+
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (effectiveDuration / 1000));
+  osc.stop(audioCtx.currentTime + (effectiveDuration / 1000) + 0.1);
 
   activeOscillators.set(freq, { osc, gain });
 }
