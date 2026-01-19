@@ -614,6 +614,10 @@ document.addEventListener("pointerdown", () => {
 const activeOscillators = new Map();
 
 function playNote(freq) {
+  if (activeOscillators.has(freq)) {
+    stopNote(freq);
+  }
+
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
@@ -631,6 +635,29 @@ function playNote(freq) {
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
     osc.stop(audioCtx.currentTime + 0.6);
   }
+}
+
+function playLogNote(freq, durationMs) {
+  if (activeOscillators.has(freq)) {
+    stopNote(freq);
+  }
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = toneType;
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+
+  const safeDuration = Math.max(durationMs, 100) / 1000; // 最低0.1秒
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + safeDuration);
+  osc.start();
+  osc.stop(audioCtx.currentTime + safeDuration + 0.1);
+
+  activeOscillators.set(freq, { osc, gain });
 }
 
 function stopNote(freq) {
@@ -979,8 +1006,7 @@ function updateLogDisplay() {
     span.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       noteEvent.notes.forEach(note => {
-        playNote(note.freq);
-        setTimeout(() => stopNote(note.freq), noteEvent.duration);
+        playLogNote(note.freq, noteEvent.duration);
       });
     });
 
@@ -1258,7 +1284,7 @@ document.addEventListener("pointermove", e => {
     
     prevKey.classList.remove("active");
     if (sustainMode) {
-      stopNote(prevFreq);
+      setTimeout(() => stopNote(prevFreq), 50);
     }
     newKey.classList.add("active");
     const freq = parseFloat(newKey.dataset.freq);
