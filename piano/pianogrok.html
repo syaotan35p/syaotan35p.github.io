@@ -652,7 +652,7 @@ function playLogNote(freq, durationMs) {
 
   gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
 
-  const safeDuration = Math.max(durationMs, 1000) / 1000; // 最低0.6秒に変更
+  const safeDuration = Math.max(durationMs, 1000) / 1000; // 最低1.0秒に変更
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + safeDuration);
   osc.start();
   osc.stop(audioCtx.currentTime + safeDuration + 0.1);
