@@ -876,6 +876,8 @@ settingsApply.addEventListener('click', (e) => {
   url.hash = '#start=' + newSettings.startKey + '&keys=' + newSettings.numKeys + '&labels=' + newSettings.showLabels + '&copy=' + newSettings.copyMode + '&tone=' + newSettings.toneType + '&sustain=' + newSettings.sustainMode;
   
   window.location.href = url.toString();
+  settingsModal.classList.remove('visible');
+  location.reload();
 });
 
 /* ===== データ構造とユーティリティ ===== */
@@ -976,7 +978,10 @@ function updateLogDisplay() {
 
     span.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      noteEvent.notes.forEach(note => playNote(note.freq));
+      noteEvent.notes.forEach(note => {
+        playNote(note.freq);
+        setTimeout(() => stopNote(note.freq), noteEvent.duration);
+      });
     });
 
     logDisplay.appendChild(span);
