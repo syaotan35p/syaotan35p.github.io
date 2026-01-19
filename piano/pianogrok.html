@@ -632,9 +632,11 @@ function playNote(freq) {
   activeOscillators.set(freq, { osc, gain });
 
   if (!sustainMode) {
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-    osc.stop(audioCtx.currentTime + 0.6);
+    // 持続モードOFF: ピアノらしい長め減衰（2.5秒）
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5);
+    osc.stop(audioCtx.currentTime + 2.5 + 0.1);
   }
+  // 持続モードONの場合: ここでは減衰を設定せず、離したタイミングでstopNoteが呼ばれる
 }
 
 function playLogNote(freq, durationMs) {
@@ -669,7 +671,7 @@ function stopNote(freq) {
   if (node) {
     const { osc, gain } = node;
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-    osc.stop(audioCtx.currentTime + 0.6);
+    osc.stop(audioCtx.currentTime + 0.6 + 0.1);
     activeOscillators.delete(freq);
   }
 }
@@ -1326,7 +1328,7 @@ function releasePointer(e) {
     key.classList.remove("active");
   }
   const freq = parseFloat(key?.dataset.freq);
-  if (sustainMode && freq) {
+  if (freq) {
     stopNote(freq);
   }
   activePointers.delete(e.pointerId);
