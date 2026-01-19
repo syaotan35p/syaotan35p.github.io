@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>mi35Piano（みみこぴあの）</title>
 
 <!-- iOSアイコン対応 -->
@@ -418,6 +418,10 @@ img {
 @media (orientation: landscape) {
   .piano-single { display: flex; }
   .piano-double { display: none; }
+  .settings-content {
+    overflow-y: auto;
+    max-height: 90vh;
+  }
 }
 </style>
 </head>
@@ -506,6 +510,11 @@ img {
         <label class="settings-checkbox-label" for="setting-copy-mode">録音モード</label>
       </div>
 
+      <div class="settings-checkbox-row">
+        <input type="checkbox" class="settings-checkbox" id="setting-sustain-mode">
+        <label class="settings-checkbox-label" for="setting-sustain-mode">音の持続モード</label>
+      </div>
+
       <div class="settings-buttons">
         <button class="settings-btn-apply" id="settings-apply">更新</button>
         <button class="settings-btn-close" id="settings-close">✕</button>
@@ -530,7 +539,8 @@ const DEFAULT_SETTINGS = {
   numKeys: 24,
   showLabels: true,
   copyMode: false,
-  toneType: 'sine'
+  toneType: 'sine',
+  sustainMode: false
 };
 
 function loadSettings() {
@@ -565,6 +575,7 @@ const numKeys = parseInt(params.get('keys') || settings.numKeys);
 let showLabels = params.get('labels') !== 'false' && (params.has('labels') ? params.get('labels') === 'true' : settings.showLabels);
 const copyMode = params.get('copy') === 'true' || (!params.has('copy') && settings.copyMode);
 const toneType = params.get('tone') || settings.toneType;
+const sustainMode = params.get('sustain') === 'true' || (!params.has('sustain') && settings.sustainMode);
 
 /* ===== リズム設定 ===== */
 const TEMPO_BPM = 120;
@@ -600,7 +611,13 @@ document.addEventListener("pointerdown", () => {
   }
 }, { once: true });
 
+const activeOscillators = new Map();
+
 function playNote(freq) {
+  if (activeOscillators.has(freq)) {
+    stopNote(freq);
+  }
+
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
@@ -610,10 +627,53 @@ function playNote(freq) {
   gain.connect(audioCtx.destination);
 
   gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-
   osc.start();
-  osc.stop(audioCtx.currentTime + 0.6);
+
+  activeOscillators.set(freq, { osc, gain });
+
+  if (!sustainMode) {
+    // 持続モードOFF: ピアノらしい長め減衰（2.5秒）
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5);
+    osc.stop(audioCtx.currentTime + 2.5 + 0.1);
+  }
+  // 持続モードONの場合: ここでは減衰を設定せず、離したタイミングでstopNoteが呼ばれる
+}
+
+function playLogNote(freq, durationMs) {
+  if (activeOscillators.has(freq)) {
+    stopNote(freq);
+  }
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = toneType;
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+  osc.start();
+
+  const minDuration = 1000; // 最低1.0秒
+  const maxDuration = 4000; // 上限4秒
+  let effectiveDuration = Math.max(durationMs, minDuration);
+  effectiveDuration = Math.min(effectiveDuration, maxDuration);
+
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (effectiveDuration / 1000));
+  osc.stop(audioCtx.currentTime + (effectiveDuration / 1000) + 0.1);
+
+  activeOscillators.set(freq, { osc, gain });
+}
+
+function stopNote(freq) {
+  const node = activeOscillators.get(freq);
+  if (node) {
+    const { osc, gain } = node;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+    osc.stop(audioCtx.currentTime + 0.6 + 0.1);
+    activeOscillators.delete(freq);
+  }
 }
 
 /* Notes */
@@ -782,6 +842,7 @@ const settingNumKeys = document.getElementById('setting-num-keys');
 const settingTone = document.getElementById('setting-tone');
 const settingShowLabels = document.getElementById('setting-show-labels');
 const settingCopyMode = document.getElementById('setting-copy-mode');
+const settingSustainMode = document.getElementById('setting-sustain-mode');
 
 // 設定値を読み込み
 settingStartKey.value = startKey % 12;
@@ -789,6 +850,7 @@ settingNumKeys.value = numKeys;
 settingTone.value = toneType;
 settingShowLabels.checked = showLabels;
 settingCopyMode.checked = copyMode;
+settingSustainMode.checked = sustainMode;
 
 // 開始キーと総鍵盤数の矛盾チェック
 settingStartKey.addEventListener('change', validateSettings);
@@ -834,7 +896,8 @@ settingsApply.addEventListener('click', (e) => {
     numKeys: parseInt(settingNumKeys.value),
     showLabels: settingShowLabels.checked,
     copyMode: settingCopyMode.checked,
-    toneType: settingTone.value
+    toneType: settingTone.value,
+    sustainMode: settingSustainMode.checked
   };
   
   saveSettings(newSettings);
@@ -843,13 +906,11 @@ settingsApply.addEventListener('click', (e) => {
   url.search = '';
   url.hash = '';
   
-  url.searchParams.set('start', newSettings.startKey);
-  url.searchParams.set('keys', newSettings.numKeys);
-  url.searchParams.set('labels', newSettings.showLabels);
-  url.searchParams.set('copy', newSettings.copyMode);
-  url.searchParams.set('tone', newSettings.toneType);
+  url.hash = '#start=' + newSettings.startKey + '&keys=' + newSettings.numKeys + '&labels=' + newSettings.showLabels + '&copy=' + newSettings.copyMode + '&tone=' + newSettings.toneType + '&sustain=' + newSettings.sustainMode;
   
   window.location.href = url.toString();
+  settingsModal.classList.remove('visible');
+  location.reload();
 });
 
 /* ===== データ構造とユーティリティ ===== */
@@ -950,7 +1011,9 @@ function updateLogDisplay() {
 
     span.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      noteEvent.notes.forEach(note => playNote(note.freq));
+      noteEvent.notes.forEach(note => {
+        playLogNote(note.freq, noteEvent.duration);
+      });
     });
 
     logDisplay.appendChild(span);
@@ -1157,6 +1220,25 @@ document.addEventListener("pointerdown", e => {
       
       if (currentGesture.size === 0) {
         gestureStartTime = now;
+      } else {
+        const timeDiff = now - gestureStartTime;
+        if (timeDiff > CHORD_THRESHOLD) {
+          const endTime = now;
+          const duration = roundToBeat(endTime - gestureStartTime);
+          const releasedNotes = [];
+          currentGesture.forEach(data => {
+            releasedNotes.push(data.noteInfo);
+          });
+          const noteEvent = createNoteEvent(releasedNotes, gestureStartTime);
+          noteEvent.duration = duration;
+          playLog.push(noteEvent);
+          currentGesture.clear();
+          noteStartTimes.clear();
+          updateLogDisplay();
+          saveLog();
+          updateUndoButton();
+          gestureStartTime = now;
+        }
       }
       
       const noteInfo = {
@@ -1207,6 +1289,9 @@ document.addEventListener("pointermove", e => {
     }
     
     prevKey.classList.remove("active");
+    if (sustainMode) {
+      setTimeout(() => stopNote(prevFreq), 50);
+    }
     newKey.classList.add("active");
     const freq = parseFloat(newKey.dataset.freq);
     const name = newKey.dataset.name;
@@ -1242,7 +1327,10 @@ function releasePointer(e) {
   if (key) {
     key.classList.remove("active");
   }
-  
+  const freq = parseFloat(key?.dataset.freq);
+  if (freq) {
+    stopNote(freq);
+  }
   activePointers.delete(e.pointerId);
   
   if (isRecording && !isPlayMode && activePointers.size === 0 && currentGesture.size > 0) {
