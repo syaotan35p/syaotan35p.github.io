@@ -106,7 +106,7 @@ img {
 }
 .note-label.hidden { display: none; }
 
-/* Title Button (新しく追加) */
+/* Title Button */
 .title-btn {
   position: absolute;
   top: 8px;
@@ -149,8 +149,8 @@ img {
   transform: scale(0.9);
 }
 
-/* Label Toggle */
-.label-toggle {
+/* Toggle Group */
+.toggle-group {
   position: absolute;
   top: 8px;
   left: 58px;
@@ -165,7 +165,13 @@ img {
   z-index: 100;
 }
 
-.label-toggle input[type="checkbox"] {
+.toggle-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-group input[type="checkbox"] {
   width: 16px;
   height: 16px;
   cursor: pointer;
@@ -468,9 +474,15 @@ img {
 
   <div class="title-btn" id="title-btn">mi35Piano</div>
 
-  <div class="label-toggle">
-    <input type="checkbox" id="label-checkbox" checked>
-    <label for="label-checkbox">音階表示</label>
+  <div class="toggle-group">
+    <label>
+      <input type="checkbox" id="label-checkbox" checked>
+      音階表示
+    </label>
+    <label>
+      <input type="checkbox" id="easy-chord-checkbox">
+      簡単和音
+    </label>
   </div>
 
   <div class="control-panel" id="control-panel">
@@ -624,7 +636,7 @@ function applyTheme(themeName) {
     document.documentElement.style.setProperty('--white-key-bg', '#ffffff');
     document.documentElement.style.setProperty('--white-key-border', '#000000');
     document.documentElement.style.setProperty('--black-key-bg', '#000000');
-  } else { // mi35Piano (デフォルト)
+  } else { // mi35Piano
     document.documentElement.style.setProperty('--white-key-bg', '#ffc8d5');
     document.documentElement.style.setProperty('--white-key-border', '#ff5f83');
     document.documentElement.style.setProperty('--black-key-bg', '#ff6a8c');
@@ -687,11 +699,9 @@ function playNote(freq) {
   activeOscillators.set(freq, { osc, gain });
 
   if (!sustainMode) {
-    // 持続モードOFF: ピアノらしい長め減衰（3.5秒）
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.5);
     osc.stop(audioCtx.currentTime + 3.5 + 0.1);
   }
-  // 持続モードONの場合: ここでは減衰を設定せず、離したタイミングでstopNoteが呼ばれる
 }
 
 function playLogNote(freq, durationMs) {
@@ -710,8 +720,8 @@ function playLogNote(freq, durationMs) {
   gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
   osc.start();
 
-  const minDuration = 1000; // 最低1.0秒
-  const maxDuration = 4000; // 上限4秒
+  const minDuration = 1000;
+  const maxDuration = 4000;
   let effectiveDuration = Math.max(durationMs, minDuration);
   effectiveDuration = Math.min(effectiveDuration, maxDuration);
 
@@ -725,7 +735,6 @@ function stopNote(freq) {
   const node = activeOscillators.get(freq);
   if (node) {
     const { osc, gain } = node;
-    // 離した瞬間から1.5秒減衰（持続モードON時用に調整）
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
     osc.stop(audioCtx.currentTime + 1.5 + 0.1);
     activeOscillators.delete(freq);
@@ -741,12 +750,46 @@ for (let i = 0; i < 48; i++) {
   allNotes.push({ 
     freq: baseFreq * Math.pow(2, i / 12), 
     name: noteNames[i % 12],
-    octave: Math.floor(i / 12)
+    octave: Math.floor(i / 12),
+    isWhite: [0,2,4,5,7,9,11].includes(i % 12)
   });
 }
 
 const notes = allNotes.slice(startKey, startKey + numKeys);
 const whitePattern = [0,2,4,5,7,9,11];
+
+/* 白鍵インデックスからfreqを取得 */
+function getWhiteKeyFreq(whiteIndex) {
+  let count = -1;
+  for (let i = 0; i < notes.length; i++) {
+    if (whitePattern.includes((startKey + i) % 12)) {
+      count++;
+      if (count === whiteIndex) {
+        return notes[i].freq;
+      }
+    }
+  }
+  return null;
+}
+
+/* 黒鍵押下時の「右に2番目の白鍵」を取得 */
+function getBlackKeyNextWhite2(freq) {
+  let found = false;
+  let whiteCountAfter = -1;
+  for (let i = 0; i < notes.length; i++) {
+    if (Math.abs(notes[i].freq - freq) < 0.1) {
+      found = true;
+      continue;
+    }
+    if (found && whitePattern.includes((startKey + i) % 12)) {
+      whiteCountAfter++;
+      if (whiteCountAfter === 2) { // 直後の白鍵を0、次の白鍵を1、さらに次の白鍵を2
+        return notes[i].freq;
+      }
+    }
+  }
+  return null;
+}
 
 /* Build Piano */
 function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = false) {
@@ -872,9 +915,11 @@ if (isBoundaryBlack && notes.length > half) {
 buildPiano(document.getElementById("piano-top"), topSlice, topStart, false);
 buildPiano(document.getElementById("piano-bottom"), bottomSlice, bottomStart, skipFirstBlack);
 
-/* Label Toggle */
+/* Label Toggle & Easy Chord Toggle */
 const labelCheckbox = document.getElementById('label-checkbox');
+const easyChordCheckbox = document.getElementById('easy-chord-checkbox');
 labelCheckbox.checked = showLabels;
+easyChordCheckbox.checked = false; // デフォルトOFF
 
 labelCheckbox.addEventListener('change', (e) => {
   showLabels = e.target.checked;
@@ -885,6 +930,11 @@ labelCheckbox.addEventListener('change', (e) => {
       label.classList.add('hidden');
     }
   });
+});
+
+let easyChordMode = false;
+easyChordCheckbox.addEventListener('change', (e) => {
+  easyChordMode = e.target.checked;
 });
 
 /* ===== 設定モーダル ===== */
@@ -937,7 +987,6 @@ settingsBtn.addEventListener('click', (e) => {
 titleBtn.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
-  // 将来ここにSNS共有などの処理を追加予定
   alert('mi35Piano - 鍵盤を叩いて耳コピを楽しもう！\n（共有機能は準備中です）');
 });
 
@@ -1016,8 +1065,7 @@ let isPlayMode = false;
 let playIndex = 0;
 
 const noteStartTimes = new Map();
-const currentGesture = new Map();
-let gestureStartTime = 0;
+const currentChordKeys = new Set();
 
 const controlPanel = document.getElementById('control-panel');
 const btnRecord = document.getElementById('btn-record');
@@ -1229,7 +1277,6 @@ updateUndoButton();
 /* ===== Pointer Events Engine ===== */
 
 const activePointers = new Map();
-const currentChordKeys = new Set();
 
 function getKeyFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -1264,27 +1311,45 @@ document.addEventListener("pointerdown", e => {
       if (matchedNote) {
         key.classList.add("active");
         playNote(freq);
-        currentChordKeys.add(freq);
         activePointers.set(e.pointerId, key);
         e.target.setPointerCapture(e.pointerId);
         
-        const allPressed = target.notes.every(note => {
-          return Array.from(currentChordKeys).some(pressedFreq => 
-            Math.abs(pressedFreq - note.freq) < 0.1
-          );
-        });
-        
-        if (allPressed) {
-          playIndex++;
-          currentChordKeys.clear();
-          setTimeout(() => highlightNextKey(), 100);
-        }
+        // 簡単和音モードは再生モードでは無効
       }
     }
   } else {
     activePointers.set(e.pointerId, key);
     key.classList.add("active");
     playNote(freq);
+    
+    // 簡単和音モード
+    if (easyChordMode) {
+      let additionalFreq = null;
+
+      const currentNoteIndex = notes.findIndex(n => Math.abs(n.freq - freq) < 0.1);
+      const isWhite = whitePattern.includes((startKey + currentNoteIndex) % 12);
+
+      if (isWhite) {
+        // 白鍵の場合：自分の白鍵インデックス + 2
+        let whiteIndex = -1;
+        for (let i = 0; i <= currentNoteIndex; i++) {
+          if (whitePattern.includes((startKey + i) % 12)) whiteIndex++;
+        }
+        additionalFreq = getWhiteKeyFreq(whiteIndex + 2);
+      } else {
+        // 黒鍵の場合：右に2番目の白鍵
+        additionalFreq = getBlackKeyNextWhite2(freq);
+      }
+
+      if (additionalFreq && !activeOscillators.has(additionalFreq)) {
+        playNote(additionalFreq);
+        const addKey = document.querySelector(`[data-freq="${additionalFreq}"]`);
+        if (addKey) {
+          addKey.classList.add("active");
+          setTimeout(() => addKey.classList.remove("active"), 300);
+        }
+      }
+    }
     
     if (isRecording) {
       const now = Date.now();
@@ -1342,24 +1407,6 @@ document.addEventListener("pointermove", e => {
 
   if (newKey && newKey !== prevKey) {
     const prevFreq = parseFloat(prevKey.dataset.freq);
-    const prevNoteKey = `${e.pointerId}_${prevFreq}`;
-    
-    if (isRecording && currentGesture.has(prevNoteKey)) {
-      const gestureData = currentGesture.get(prevNoteKey);
-      const endTime = Date.now();
-      const duration = roundToBeat(endTime - gestureData.startTime);
-      
-      const noteEvent = createNoteEvent([gestureData.noteInfo], gestureData.startTime);
-      noteEvent.duration = duration;
-      playLog.push(noteEvent);
-      
-      currentGesture.delete(prevNoteKey);
-      noteStartTimes.delete(prevNoteKey);
-      
-      updateLogDisplay();
-      saveLog();
-      updateUndoButton();
-    }
     
     prevKey.classList.remove("active");
     if (sustainMode) {
