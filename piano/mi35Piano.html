@@ -979,16 +979,16 @@ function handleApply(e) {
     copyMode: settingCopyMode.checked,
     toneType: settingTone.value,
     sustainMode: settingSustainMode.checked,
-    theme: settingTheme.value || 'mi35Piano'  // themeがundefinedの場合のフォールバック
+    theme: settingTheme.value || 'mi35Piano'
   };
   
   saveSettings(newSettings);
   
   const url = new URL(window.location.href);
-  url.search = '';
-  url.hash = '';  // 古いハッシュをクリア
+  url.search = '';          // クエリを完全に削除
+  url.hash = '';            // 古いハッシュをクリア
   
-  // すべてのパラメータを正しくエンコード
+  // 新しいハッシュを構築
   url.hash = '#start=' + newSettings.startKey +
              '&keys=' + newSettings.numKeys +
              '&labels=' + newSettings.showLabels +
@@ -997,13 +997,11 @@ function handleApply(e) {
              '&sustain=' + newSettings.sustainMode +
              '&theme=' + newSettings.theme;
   
-  // リダイレクトを確実にするために少し遅らせる
-  setTimeout(() => {
-    window.location.href = url.toString();
-  }, 100);
-  
-  // モーダルはすぐに閉じる
+  // モーダルを閉じる
   settingsModal.classList.remove('visible');
+  
+  // 即時リダイレクト（replaceで履歴を上書き → 戻るボタンで戻らないように）
+  window.location.replace(url.toString());
 }
 
 // 開始キーと総鍵盤数の矛盾チェック
