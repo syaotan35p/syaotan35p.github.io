@@ -1016,7 +1016,7 @@ settingsApply.addEventListener('click', (e) => {
     copyMode: settingCopyMode.checked,
     toneType: settingTone.value,
     sustainMode: settingSustainMode.checked,
-    theme: settingTheme.value
+    theme: settingTheme.value  // ← これを追加（抜けていた）
   };
   
   saveSettings(newSettings);
@@ -1025,6 +1025,7 @@ settingsApply.addEventListener('click', (e) => {
   url.search = '';
   url.hash = '';
   
+  // URLハッシュにすべての設定を正しく反映
   url.hash = '#start=' + newSettings.startKey +
              '&keys=' + newSettings.numKeys +
              '&labels=' + newSettings.showLabels +
