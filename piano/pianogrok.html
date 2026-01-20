@@ -577,6 +577,12 @@ const copyMode = params.get('copy') === 'true' || (!params.has('copy') && settin
 const toneType = params.get('tone') || settings.toneType;
 const sustainMode = params.get('sustain') === 'true' || (!params.has('sustain') && settings.sustainMode);
 
+// themeの取得を確実に（クエリ優先 → 保存値 → デフォルト）
+const theme = params.get('theme') || settings.theme || 'mi35Piano';
+
+// テーマ適用（読み込み直後に呼ぶ）
+applyTheme(theme);
+
 /* ===== リズム設定 ===== */
 const TEMPO_BPM = 120;
 const MS_PER_BEAT = 60000 / TEMPO_BPM;
@@ -887,7 +893,11 @@ settingsModal.addEventListener('click', (e) => {
   }
 });
 
-settingsApply.addEventListener('click', (e) => {
+// 設定モーダルイベントの重複登録を防ぐため、removeEventListenerしてから追加
+settingsApply.removeEventListener('click', handleApply);
+settingsApply.addEventListener('click', handleApply);
+
+function handleApply(e) {
   e.preventDefault();
   e.stopPropagation();
   
@@ -897,21 +907,34 @@ settingsApply.addEventListener('click', (e) => {
     showLabels: settingShowLabels.checked,
     copyMode: settingCopyMode.checked,
     toneType: settingTone.value,
-    sustainMode: settingSustainMode.checked
+    sustainMode: settingSustainMode.checked,
+    theme: settingTheme.value || 'mi35Piano'  // themeを含めて保存・反映
   };
   
   saveSettings(newSettings);
   
   const url = new URL(window.location.href);
   url.search = '';
-  url.hash = '';
+  url.hash = '';  // 古いハッシュをクリア
   
-  url.hash = '#start=' + newSettings.startKey + '&keys=' + newSettings.numKeys + '&labels=' + newSettings.showLabels + '&copy=' + newSettings.copyMode + '&tone=' + newSettings.toneType + '&sustain=' + newSettings.sustainMode;
+  // すべてのパラメータを正しくエンコード
+  url.hash = '#start=' + newSettings.startKey +
+             '&keys=' + newSettings.numKeys +
+             '&labels=' + newSettings.showLabels +
+             '&copy=' + newSettings.copyMode +
+             '&tone=' + newSettings.toneType +
+             '&sustain=' + newSettings.sustainMode +
+             '&theme=' + newSettings.theme;
   
-  window.location.href = url.toString();
+  // モーダルを閉じてからリダイレクト
   settingsModal.classList.remove('visible');
-  location.reload();
-});
+  
+  // ハッシュ変更を確実に反映するために少し遅らせる + リロード
+  setTimeout(() => {
+    window.location.href = url.toString();
+    setTimeout(() => location.reload(), 50);
+  }, 100);
+}
 
 /* ===== データ構造とユーティリティ ===== */
 let playLog = [];
