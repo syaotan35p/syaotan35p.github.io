@@ -561,6 +561,20 @@ function saveSettings(settings) {
 
 const settings = loadSettings();
 
+// クエリパラメータが残っている場合、ハッシュに変換してリダイレクト（初回のみ）
+if (window.location.search && !window.location.hash) {
+  const queryParams = new URLSearchParams(window.location.search);
+  const hash = '#start=' + (queryParams.get('start') || '0') +
+               '&keys=' + (queryParams.get('keys') || '24') +
+               '&labels=' + (queryParams.get('labels') || 'true') +
+               '&copy=' + (queryParams.get('copy') || 'false') +
+               '&tone=' + (queryParams.get('tone') || 'sine') +
+               '&sustain=' + (queryParams.get('sustain') || 'false') +
+               '&theme=' + (queryParams.get('theme') || 'mi35Piano');
+  
+  window.location.replace(window.location.pathname + hash);
+}
+  
 /* URLパラメータ取得（優先） */
 let queryString = window.location.search || window.location.hash;
 queryString = queryString.replace(/&amp;/g, '&');
@@ -908,16 +922,17 @@ function handleApply(e) {
     copyMode: settingCopyMode.checked,
     toneType: settingTone.value,
     sustainMode: settingSustainMode.checked,
-    theme: settingTheme.value || 'mi35Piano'  // themeを含めて保存・反映
+    theme: settingTheme.value || 'mi35Piano'
   };
   
   saveSettings(newSettings);
   
   const url = new URL(window.location.href);
-  url.search = '';
-  url.hash = '';  // 古いハッシュをクリア
   
-  // すべてのパラメータを正しくエンコード
+  // クエリパラメータを完全に削除（これが重要！）
+  url.search = '';
+  
+  // ハッシュを完全に再構築
   url.hash = '#start=' + newSettings.startKey +
              '&keys=' + newSettings.numKeys +
              '&labels=' + newSettings.showLabels +
@@ -926,13 +941,14 @@ function handleApply(e) {
              '&sustain=' + newSettings.sustainMode +
              '&theme=' + newSettings.theme;
   
-  // モーダルを閉じてからリダイレクト
+  // モーダルを閉じる
   settingsModal.classList.remove('visible');
   
-  // ハッシュ変更を確実に反映するために少し遅らせる + リロード
+  // 確実にリダイレクト＆リロード
   setTimeout(() => {
-    window.location.href = url.toString();
-    setTimeout(() => location.reload(), 50);
+    window.location.replace(url.toString());  // replaceで履歴を残さないリダイレクト
+    // 念のため即時リロード（ブラウザのタイミングずれ対策）
+    setTimeout(() => location.reload(true), 50);
   }, 100);
 }
 
