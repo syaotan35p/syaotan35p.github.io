@@ -584,6 +584,14 @@ setRealVH();
 window.addEventListener("resize", setRealVH);
 window.visualViewport?.addEventListener("resize", setRealVH);
 
+// ページ読み込み時に残ったactiveクラスをクリア（キャッシュ残り対策）
+window.addEventListener('load', () => {
+  document.querySelectorAll('.white-key.active, .black-key.active').forEach(el => {
+    el.classList.remove('active');
+  });
+  activeOscillators.clear();  // 念のため鳴ってる音もクリア
+});
+
 /* ===== 設定管理 ===== */
 const DEFAULT_SETTINGS = {
   startKey: 0,
@@ -1479,7 +1487,14 @@ document.addEventListener("pointermove", e => {
 });
 
 function releasePointer(e) {
-  if (e.target.closest('.settings-modal')) {
+  // エラー防止: e.target が存在しない場合をスキップ
+  if (!e || !e.target) {
+    // ターゲットがない場合もactivePointersを削除してクリーンアップ
+    activePointers.delete(e?.pointerId);
+    return;
+  }
+
+  if (e.target.closest && e.target.closest('.settings-modal')) {
     return;
   }
   
@@ -1496,7 +1511,7 @@ function releasePointer(e) {
   }
   activePointers.delete(e.pointerId);
   
-  // 追加音が残らないようクリーンアップ
+  // 追加音が残らないようクリーンアップ（稀なケース対策）
   if (easyChordMode) {
     activeOscillators.forEach((node, keyFreq) => {
       if (!Array.from(activePointers.values()).some(k => parseFloat(k.dataset.freq) === keyFreq)) {
@@ -1505,11 +1520,14 @@ function releasePointer(e) {
     });
   }
   
-  // 追加音のactiveクラスも一緒に消す（離したタイミングで）
-  document.querySelectorAll('.white-key.active, .black-key.active').forEach(el => {
+  // すべてのactiveクラスをfreqベースで解除（縦画面対応 + 残り防止）
+  document.querySelectorAll('.white-key, .black-key').forEach(el => {
     const elFreq = parseFloat(el.dataset.freq);
-    if (!Array.from(activePointers.values()).some(k => parseFloat(k.dataset.freq) === elFreq)) {
-      el.classList.remove("active");
+    if (elFreq) {
+      const isPressed = Array.from(activePointers.values()).some(k => parseFloat(k.dataset.freq) === elFreq);
+      if (!isPressed) {
+        el.classList.remove("active");
+      }
     }
   });
   
