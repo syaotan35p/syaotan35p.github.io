@@ -136,7 +136,7 @@ img {
   height: 40px;
   background: rgba(0,0,0,0.6);
   border-radius: 50%;
-  display: flex;
+  display: flex !important;  /* 常に表示 */
   align-items: center;
   justify-content: center;
   font-size: 24px;
@@ -592,6 +592,14 @@ window.addEventListener('load', () => {
   activeOscillators.clear();  // 念のため鳴ってる音もクリア
 });
 
+// ページ読み込み時に設定アイコンを確実に表示（クエリなしでも）
+document.addEventListener('DOMContentLoaded', () => {
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.style.display = 'flex';  // 強制表示
+  }
+});
+  
 /* ===== 設定管理 ===== */
 const DEFAULT_SETTINGS = {
   startKey: 0,
