@@ -750,15 +750,14 @@ for (let i = 0; i < 48; i++) {
   allNotes.push({ 
     freq: baseFreq * Math.pow(2, i / 12), 
     name: noteNames[i % 12],
-    octave: Math.floor(i / 12),
-    isWhite: [0,2,4,5,7,9,11].includes(i % 12)
+    octave: Math.floor(i / 12)
   });
 }
 
 const notes = allNotes.slice(startKey, startKey + numKeys);
 const whitePattern = [0,2,4,5,7,9,11];
 
-/* 白鍵インデックスからfreqを取得 */
+/* 白鍵のインデックスからfreqを取得 */
 function getWhiteKeyFreq(whiteIndex) {
   let count = -1;
   for (let i = 0; i < notes.length; i++) {
@@ -772,18 +771,22 @@ function getWhiteKeyFreq(whiteIndex) {
   return null;
 }
 
-/* 黒鍵押下時の「右に2番目の白鍵」を取得 */
-function getBlackKeyNextWhite2(freq) {
-  let found = false;
-  let whiteCountAfter = -1;
+/* 黒鍵押下時の「左に2番目の白鍵」を取得 */
+function getBlackKeyPrevWhite2(freq) {
+  let foundIndex = -1;
   for (let i = 0; i < notes.length; i++) {
     if (Math.abs(notes[i].freq - freq) < 0.1) {
-      found = true;
-      continue;
+      foundIndex = i;
+      break;
     }
-    if (found && whitePattern.includes((startKey + i) % 12)) {
-      whiteCountAfter++;
-      if (whiteCountAfter === 2) { // 直後の白鍵を0、次の白鍵を1、さらに次の白鍵を2
+  }
+  if (foundIndex === -1) return null;
+
+  let whiteCountBefore = 0;
+  for (let i = foundIndex - 1; i >= 0; i--) {
+    if (whitePattern.includes((startKey + i) % 12)) {
+      whiteCountBefore++;
+      if (whiteCountBefore === 2) {
         return notes[i].freq;
       }
     }
@@ -919,7 +922,7 @@ buildPiano(document.getElementById("piano-bottom"), bottomSlice, bottomStart, sk
 const labelCheckbox = document.getElementById('label-checkbox');
 const easyChordCheckbox = document.getElementById('easy-chord-checkbox');
 labelCheckbox.checked = showLabels;
-easyChordCheckbox.checked = false; // デフォルトOFF
+easyChordCheckbox.checked = false;
 
 labelCheckbox.addEventListener('change', (e) => {
   showLabels = e.target.checked;
@@ -1065,7 +1068,8 @@ let isPlayMode = false;
 let playIndex = 0;
 
 const noteStartTimes = new Map();
-const currentChordKeys = new Set();
+const currentGesture = new Map();
+let gestureStartTime = 0;
 
 const controlPanel = document.getElementById('control-panel');
 const btnRecord = document.getElementById('btn-record');
@@ -1277,6 +1281,7 @@ updateUndoButton();
 /* ===== Pointer Events Engine ===== */
 
 const activePointers = new Map();
+const currentChordKeys = new Set();
 
 function getKeyFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -1311,10 +1316,21 @@ document.addEventListener("pointerdown", e => {
       if (matchedNote) {
         key.classList.add("active");
         playNote(freq);
+        currentChordKeys.add(freq);
         activePointers.set(e.pointerId, key);
         e.target.setPointerCapture(e.pointerId);
         
-        // 簡単和音モードは再生モードでは無効
+        const allPressed = target.notes.every(note => {
+          return Array.from(currentChordKeys).some(pressedFreq => 
+            Math.abs(pressedFreq - note.freq) < 0.1
+          );
+        });
+        
+        if (allPressed) {
+          playIndex++;
+          currentChordKeys.clear();
+          setTimeout(() => highlightNextKey(), 100);
+        }
       }
     }
   } else {
@@ -1323,22 +1339,24 @@ document.addEventListener("pointerdown", e => {
     playNote(freq);
     
     // 簡単和音モード
-    if (easyChordMode) {
+    if (easyChordMode && currentGesture.size < 2) { // 和音入力中（複数指）は追加しない
       let additionalFreq = null;
 
       const currentNoteIndex = notes.findIndex(n => Math.abs(n.freq - freq) < 0.1);
       const isWhite = whitePattern.includes((startKey + currentNoteIndex) % 12);
 
       if (isWhite) {
-        // 白鍵の場合：自分の白鍵インデックス + 2
+        // 白鍵の場合: 自分の白鍵インデックス - 2
         let whiteIndex = -1;
         for (let i = 0; i <= currentNoteIndex; i++) {
           if (whitePattern.includes((startKey + i) % 12)) whiteIndex++;
         }
-        additionalFreq = getWhiteKeyFreq(whiteIndex + 2);
+        if (whiteIndex - 2 >= 0) {
+          additionalFreq = getWhiteKeyFreq(whiteIndex - 2);
+        }
       } else {
-        // 黒鍵の場合：右に2番目の白鍵
-        additionalFreq = getBlackKeyNextWhite2(freq);
+        // 黒鍵の場合: 左に2番目の白鍵
+        additionalFreq = getBlackKeyPrevWhite2(freq);
       }
 
       if (additionalFreq && !activeOscillators.has(additionalFreq)) {
@@ -1348,6 +1366,7 @@ document.addEventListener("pointerdown", e => {
           addKey.classList.add("active");
           setTimeout(() => addKey.classList.remove("active"), 300);
         }
+        // 追加音の減衰は押したキーと同じ（sustainModeに従う）
       }
     }
     
@@ -1407,6 +1426,24 @@ document.addEventListener("pointermove", e => {
 
   if (newKey && newKey !== prevKey) {
     const prevFreq = parseFloat(prevKey.dataset.freq);
+    const prevNoteKey = `${e.pointerId}_${prevFreq}`;
+    
+    if (isRecording && currentGesture.has(prevNoteKey)) {
+      const gestureData = currentGesture.get(prevNoteKey);
+      const endTime = Date.now();
+      const duration = roundToBeat(endTime - gestureData.startTime);
+      
+      const noteEvent = createNoteEvent([gestureData.noteInfo], gestureData.startTime);
+      noteEvent.duration = duration;
+      playLog.push(noteEvent);
+      
+      currentGesture.delete(prevNoteKey);
+      noteStartTimes.delete(prevNoteKey);
+      
+      updateLogDisplay();
+      saveLog();
+      updateUndoButton();
+    }
     
     prevKey.classList.remove("active");
     if (sustainMode) {
