@@ -625,18 +625,19 @@ const settings = loadSettings();
 let queryString = window.location.search || window.location.hash;
 queryString = queryString.replace(/&amp;/g, '&');
 
-if (queryString.startsWith('#') || queryString.startsWith('?')) {
-  queryString = queryString.slice(1);
-}
+/* URLパラメータ取得（優先） - クエリ（?）専用に変更 */
+const params = new URLSearchParams(window.location.search);
 
-const params = new URLSearchParams(queryString);
 const startKey = parseInt(params.get('start') || settings.startKey);
 const numKeys = parseInt(params.get('keys') || settings.numKeys);
 let showLabels = params.get('labels') !== 'false' && (params.has('labels') ? params.get('labels') === 'true' : settings.showLabels);
 const copyMode = params.get('copy') === 'true' || (!params.has('copy') && settings.copyMode);
 const toneType = params.get('tone') || settings.toneType;
 const sustainMode = params.get('sustain') === 'true' || (!params.has('sustain') && settings.sustainMode);
-const theme = params.get('theme') || settings.theme;
+const theme = params.get('theme') || settings.theme || 'mi35Piano';
+
+// テーマを即適用
+applyTheme(theme);
 
 /* テーマ適用 */
 function applyTheme(themeName) {
@@ -993,22 +994,21 @@ function handleApply(e) {
   saveSettings(newSettings);
   
   const url = new URL(window.location.href);
-  url.search = '';          // クエリを完全に削除
-  url.hash = '';            // 古いハッシュをクリア
+  url.search = '';  // 古いクエリをクリア
   
-  // 新しいハッシュを構築
-  url.hash = '#start=' + newSettings.startKey +
-             '&keys=' + newSettings.numKeys +
-             '&labels=' + newSettings.showLabels +
-             '&copy=' + newSettings.copyMode +
-             '&tone=' + newSettings.toneType +
-             '&sustain=' + newSettings.sustainMode +
-             '&theme=' + newSettings.theme;
+  // クエリパラメータで出力（?start=...&theme=classic）
+  url.searchParams.set('start', newSettings.startKey);
+  url.searchParams.set('keys', newSettings.numKeys);
+  url.searchParams.set('labels', newSettings.showLabels);
+  url.searchParams.set('copy', newSettings.copyMode);
+  url.searchParams.set('tone', newSettings.toneType);
+  url.searchParams.set('sustain', newSettings.sustainMode);
+  url.searchParams.set('theme', newSettings.theme);
   
   // モーダルを閉じる
   settingsModal.classList.remove('visible');
   
-  // 即時リダイレクト（replaceで履歴を上書き → 戻るボタンで戻らないように）
+  // 即時リダイレクト（replaceで即反映しやすくする）
   window.location.replace(url.toString());
 }
 
