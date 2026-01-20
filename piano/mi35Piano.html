@@ -1339,12 +1339,12 @@ document.addEventListener("pointerdown", e => {
     playNote(freq);
     
     // 簡単和音モード
-    if (easyChordMode && currentGesture.size < 2) { // 和音入力中（複数指）は追加しない
+    if (easyChordMode && currentGesture.size < 2) {  // 和音入力中（複数指）は追加しない
       let additionalFreq = null;
-
+    
       const currentNoteIndex = notes.findIndex(n => Math.abs(n.freq - freq) < 0.1);
       const isWhite = whitePattern.includes((startKey + currentNoteIndex) % 12);
-
+    
       if (isWhite) {
         // 白鍵の場合: 自分の白鍵インデックス - 2
         let whiteIndex = -1;
@@ -1358,7 +1358,7 @@ document.addEventListener("pointerdown", e => {
         // 黒鍵の場合: 左に2番目の白鍵
         additionalFreq = getBlackKeyPrevWhite2(freq);
       }
-
+    
       if (additionalFreq && !activeOscillators.has(additionalFreq)) {
         playNote(additionalFreq);
         const addKey = document.querySelector(`[data-freq="${additionalFreq}"]`);
@@ -1366,7 +1366,6 @@ document.addEventListener("pointerdown", e => {
           addKey.classList.add("active");
           setTimeout(() => addKey.classList.remove("active"), 300);
         }
-        // 追加音の減衰は押したキーと同じ（sustainModeに従う）
       }
     }
     
@@ -1489,6 +1488,15 @@ function releasePointer(e) {
     stopNote(freq);
   }
   activePointers.delete(e.pointerId);
+
+  // 追加音が残らないようクリーンアップ（稀なケース対策）
+  if (easyChordMode) {
+    activeOscillators.forEach((node, keyFreq) => {
+      if (!Array.from(activePointers.values()).some(k => parseFloat(k.dataset.freq) === keyFreq)) {
+        stopNote(keyFreq);
+      }
+    });
+  }
   
   if (isRecording && !isPlayMode && activePointers.size === 0 && currentGesture.size > 0) {
     const endTime = Date.now();
