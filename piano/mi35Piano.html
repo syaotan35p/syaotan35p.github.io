@@ -58,11 +58,17 @@ img {
 
 .piano { flex: 1; display: flex; position: relative; }
 
-/* Keys */
+/* Keys - 変数化してプリセット対応 */
+:root {
+  --white-key-bg: #ffc8d5;
+  --white-key-border: #ff5f83;
+  --black-key-bg: #ff6a8c;
+}
+
 .white-key {
   flex: 1;
-  background: #ffc8d5;
-  border: 1px solid #ff5f83;
+  background: var(--white-key-bg);
+  border: 1px solid var(--white-key-border);
   position: relative;
 }
 
@@ -70,7 +76,7 @@ img {
   position: absolute;
   top: 0;
   height: 50%;
-  background: #ff6a8c;
+  background: var(--black-key-bg);
   z-index: 10;
   border-radius: 0 0 10px 10px;
 }
@@ -99,6 +105,27 @@ img {
   bottom: 6px;
 }
 .note-label.hidden { display: none; }
+
+/* Title Button (新しく追加) */
+.title-btn {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 101;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.title-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
 
 /* Settings Button */
 .settings-btn {
@@ -169,6 +196,8 @@ img {
   max-width: 320px;
   width: 90%;
   color: #fff;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .settings-title {
@@ -437,6 +466,8 @@ img {
 
   <div class="settings-btn" id="settings-btn">⚙️</div>
 
+  <div class="title-btn" id="title-btn">mi35Piano</div>
+
   <div class="label-toggle">
     <input type="checkbox" id="label-checkbox" checked>
     <label for="label-checkbox">音階表示</label>
@@ -500,6 +531,14 @@ img {
         </select>
       </div>
 
+      <div class="settings-row">
+        <label class="settings-label">デザイン</label>
+        <select class="settings-select" id="setting-theme">
+          <option value="mi35Piano">mi35Piano (ピンク系)</option>
+          <option value="classic">クラシック (黒白)</option>
+        </select>
+      </div>
+
       <div class="settings-checkbox-row">
         <input type="checkbox" class="settings-checkbox" id="setting-show-labels" checked>
         <label class="settings-checkbox-label" for="setting-show-labels">音階表示</label>
@@ -540,7 +579,8 @@ const DEFAULT_SETTINGS = {
   showLabels: true,
   copyMode: false,
   toneType: 'sine',
-  sustainMode: false
+  sustainMode: false,
+  theme: 'mi35Piano'
 };
 
 function loadSettings() {
@@ -576,6 +616,21 @@ let showLabels = params.get('labels') !== 'false' && (params.has('labels') ? par
 const copyMode = params.get('copy') === 'true' || (!params.has('copy') && settings.copyMode);
 const toneType = params.get('tone') || settings.toneType;
 const sustainMode = params.get('sustain') === 'true' || (!params.has('sustain') && settings.sustainMode);
+const theme = params.get('theme') || settings.theme;
+
+/* テーマ適用 */
+function applyTheme(themeName) {
+  if (themeName === 'classic') {
+    document.documentElement.style.setProperty('--white-key-bg', '#ffffff');
+    document.documentElement.style.setProperty('--white-key-border', '#000000');
+    document.documentElement.style.setProperty('--black-key-bg', '#000000');
+  } else { // mi35Piano (デフォルト)
+    document.documentElement.style.setProperty('--white-key-bg', '#ffc8d5');
+    document.documentElement.style.setProperty('--white-key-border', '#ff5f83');
+    document.documentElement.style.setProperty('--black-key-bg', '#ff6a8c');
+  }
+}
+applyTheme(theme);
 
 /* ===== リズム設定 ===== */
 const TEMPO_BPM = 120;
@@ -632,9 +687,9 @@ function playNote(freq) {
   activeOscillators.set(freq, { osc, gain });
 
   if (!sustainMode) {
-    // 持続モードOFF: ピアノらしい長め減衰（2.5秒）
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5);
-    osc.stop(audioCtx.currentTime + 2.5 + 0.1);
+    // 持続モードOFF: ピアノらしい長め減衰（3.5秒）
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.5);
+    osc.stop(audioCtx.currentTime + 3.5 + 0.1);
   }
   // 持続モードONの場合: ここでは減衰を設定せず、離したタイミングでstopNoteが呼ばれる
 }
@@ -670,8 +725,9 @@ function stopNote(freq) {
   const node = activeOscillators.get(freq);
   if (node) {
     const { osc, gain } = node;
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-    osc.stop(audioCtx.currentTime + 0.6 + 0.1);
+    // 離した瞬間から1.5秒減衰（持続モードON時用に調整）
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+    osc.stop(audioCtx.currentTime + 1.5 + 0.1);
     activeOscillators.delete(freq);
   }
 }
@@ -833,6 +889,7 @@ labelCheckbox.addEventListener('change', (e) => {
 
 /* ===== 設定モーダル ===== */
 const settingsBtn = document.getElementById('settings-btn');
+const titleBtn = document.getElementById('title-btn');
 const settingsModal = document.getElementById('settings-modal');
 const settingsClose = document.getElementById('settings-close');
 const settingsApply = document.getElementById('settings-apply');
@@ -840,6 +897,7 @@ const settingsApply = document.getElementById('settings-apply');
 const settingStartKey = document.getElementById('setting-start-key');
 const settingNumKeys = document.getElementById('setting-num-keys');
 const settingTone = document.getElementById('setting-tone');
+const settingTheme = document.getElementById('setting-theme');
 const settingShowLabels = document.getElementById('setting-show-labels');
 const settingCopyMode = document.getElementById('setting-copy-mode');
 const settingSustainMode = document.getElementById('setting-sustain-mode');
@@ -848,6 +906,7 @@ const settingSustainMode = document.getElementById('setting-sustain-mode');
 settingStartKey.value = startKey % 12;
 settingNumKeys.value = numKeys;
 settingTone.value = toneType;
+settingTheme.value = theme;
 settingShowLabels.checked = showLabels;
 settingCopyMode.checked = copyMode;
 settingSustainMode.checked = sustainMode;
@@ -875,6 +934,13 @@ settingsBtn.addEventListener('click', (e) => {
   settingsModal.classList.add('visible');
 });
 
+titleBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  // 将来ここにSNS共有などの処理を追加予定
+  alert('mi35Piano - 鍵盤を叩いて耳コピを楽しもう！\n（共有機能は準備中です）');
+});
+
 settingsClose.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -897,7 +963,8 @@ settingsApply.addEventListener('click', (e) => {
     showLabels: settingShowLabels.checked,
     copyMode: settingCopyMode.checked,
     toneType: settingTone.value,
-    sustainMode: settingSustainMode.checked
+    sustainMode: settingSustainMode.checked,
+    theme: settingTheme.value
   };
   
   saveSettings(newSettings);
@@ -906,7 +973,13 @@ settingsApply.addEventListener('click', (e) => {
   url.search = '';
   url.hash = '';
   
-  url.hash = '#start=' + newSettings.startKey + '&keys=' + newSettings.numKeys + '&labels=' + newSettings.showLabels + '&copy=' + newSettings.copyMode + '&tone=' + newSettings.toneType + '&sustain=' + newSettings.sustainMode;
+  url.hash = '#start=' + newSettings.startKey +
+             '&keys=' + newSettings.numKeys +
+             '&labels=' + newSettings.showLabels +
+             '&copy=' + newSettings.copyMode +
+             '&tone=' + newSettings.toneType +
+             '&sustain=' + newSettings.sustainMode +
+             '&theme=' + newSettings.theme;
   
   window.location.href = url.toString();
   settingsModal.classList.remove('visible');
