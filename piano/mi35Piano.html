@@ -1357,15 +1357,14 @@ document.addEventListener("pointerdown", e => {
         additionalFreq = getBlackKeyPrevWhite2(freq);
       }
     
-      if (additionalFreq && !activeOscillators.has(additionalFreq)) {
-        playNote(additionalFreq);
-        
-        // 追加音のキー要素もactiveにする（メインと同じ扱い）
-        const addKey = document.querySelector(`[data-freq="${additionalFreq}"]`);
-        if (addKey) {
-          addKey.classList.add("active");
-          // ここではsetTimeoutで消さない → releasePointerで一緒に消す
-        }
+    if (additionalFreq && !activeOscillators.has(additionalFreq)) {
+      playNote(additionalFreq);
+      
+      // 追加音のキー要素を探す（piano-top/piano-bottomどちらか）
+      const addKey = document.querySelector(`[data-freq="${additionalFreq}"]`);
+      if (addKey) {
+        addKey.classList.add("active");
+        // タイマーで消さない → releasePointerで一緒に消す
       }
     }
     
@@ -1489,7 +1488,7 @@ function releasePointer(e) {
   }
   activePointers.delete(e.pointerId);
   
-  // 追加音が残らないようクリーンアップ
+  // 追加音が残らないようクリーンアップ（稀なケース対策）
   if (easyChordMode) {
     activeOscillators.forEach((node, keyFreq) => {
       if (!Array.from(activePointers.values()).some(k => parseFloat(k.dataset.freq) === keyFreq)) {
@@ -1498,11 +1497,14 @@ function releasePointer(e) {
     });
   }
   
-  // 追加音のactiveクラスも一緒に消す（離したタイミングで）
-  document.querySelectorAll('.white-key.active, .black-key.active').forEach(el => {
+  // すべてのactiveクラスをfreqベースで管理（縦画面対応）
+  document.querySelectorAll('.white-key, .black-key').forEach(el => {
     const elFreq = parseFloat(el.dataset.freq);
-    if (!Array.from(activePointers.values()).some(k => parseFloat(k.dataset.freq) === elFreq)) {
-      el.classList.remove("active");
+    if (elFreq) {
+      const isPressed = Array.from(activePointers.values()).some(k => parseFloat(k.dataset.freq) === elFreq);
+      if (!isPressed) {
+        el.classList.remove("active");
+      }
     }
   });
   
