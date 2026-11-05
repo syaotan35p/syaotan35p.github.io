@@ -200,17 +200,16 @@ function postResult() {
     1: '1️⃣', 2: '2️⃣', 3: '3️⃣',4: '4️⃣', 5: '5️⃣', 6: '6️⃣'
   };
   const dice = state.rolls.map(n => emoji[n]).join(' ');
-  const text = `#フブキングダム
 
 🎲🦊9サイコロゾロ目耐久並走
 「結果：${state.rollCount}回目に${state.lastZoro}個ゾロ目出たよ！」
 ${dice}
 https://syaotan35p.github.io/fubuki_dice9/`;
   const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  const text = `#フブキングダム
   window.open(url, '_blank', 'noopener,noreferrer');
 }
-    
-  }
+
   function setVideoFromQuery() {
     try { const id=new URLSearchParams(location.search).get('yt'); if(id && /^[\w-]{11}$/.test(id)) $('youtube-frame').src=`https://www.youtube.com/embed/${id}`; }
     catch(error) { console.warn('YouTube動画IDを読み取れませんでした。',error); }
