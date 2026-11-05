@@ -200,7 +200,7 @@
     const text=`#フブキングダム\n\n🎲🦊9サイコロゾロ目耐久並走\n「結果：${state.rollCount}回目に${state.lastZoro}個ゾロ目出たよ！」\n${dice}\nhttps://syaotan35p.github.io/fubuki_dice9/`;
     const url=`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     const opened=window.open(url,'_blank','noopener,noreferrer');
-    if(!opened) location.href=url;
+  //  if(!opened) location.href=url;
   }
   function setVideoFromQuery() {
     try { const id=new URLSearchParams(location.search).get('yt'); if(id && /^[\w-]{11}$/.test(id)) $('youtube-frame').src=`https://www.youtube.com/embed/${id}`; }
