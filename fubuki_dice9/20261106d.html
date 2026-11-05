@@ -195,7 +195,7 @@
   function postResult() {
     if (resultPopupOpen) return;
     if(!state.rolls.length) { openPopup('まだ抽選結果がありません。先に「9個振る」を押してください。'); return; }
-    const emoji={1:'⚀',2:'⚁',3:'⚂',4:'⚃',5:'⚄',6:'⚅'};
+    const emoji={1:'1️⃣',2:'2️⃣',3:'3️⃣',4:'4️⃣',5:'5️⃣',6:'6️⃣'};
     const dice=state.rolls.map(n=>emoji[n]).join(' ');
     const text=`#フブキングダム\n\n🎲🦊9サイコロゾロ目耐久並走\n「結果：${state.rollCount}回目に${state.lastZoro}個ゾロ目出たよ！」\n${dice}\nhttps://syaotan35p.github.io/fubuki_dice9/`;
     const url=`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
