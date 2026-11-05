@@ -262,7 +262,7 @@
     if (!state.history.length) { const li=document.createElement('li'); li.className='history-empty'; li.textContent='まだ抽選履歴はありません。'; historyList.appendChild(li); return; }
     state.history.slice().reverse().forEach((item,index) => {
       const li=document.createElement('li'); if(item.max>=5) li.classList.add('hit');
-      const result=document.createElement('span'); result.textContent=item.rolls.join(' · ');
+      const result=document.createElement('span'); result.textContent=item.rolls.join('·');
       const meta=document.createElement('span'); meta.className='history-meta'; meta.textContent=item.max>=5?`${item.max}個ゾロ目`:`${state.rollCount-index}回目`;
       li.append(result,meta); historyList.appendChild(li);
     });
