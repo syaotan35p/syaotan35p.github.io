@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>mi35Piano（みみこぴあの）</title>
+
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+
+<style>
+:root {
+  --vh: 1vh;
+  --white-key-bg: #ffc8d5;
+  --white-key-border: #ff5f83;
+  --black-key-bg: #ff6a8c;
+  --active-white: #ffe066;
+  --active-black: #ff9800;
+  --next-target: #66ff66;
+  --next-next-target: #ccffcc;
+}
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+  box-sizing: border-box;
+}
+
+input, select, button, label {
+  touch-action: auto;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  height: calc(var(--vh) * 100);
+  overflow: hidden;
+  font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.piano-wrapper {
+  width: 100vw;
+  height: calc(var(--vh) * 100);
+  position: relative;
+  background: #111;
+}
+
+/* 鍵盤レイアウト */
+.piano-single {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.piano-double {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+.piano {
+  flex: 1;
+  display: flex;
+  position: relative;
+  min-height: 0;
+}
+
+/* 鍵 */
+.white-key {
+  flex: 1;
+  background: var(--white-key-bg);
+  border: 1px solid var(--white-key-border);
+  position: relative;
+  transition: background 0.05s;
+}
+.black-key {
+  position: absolute;
+  top: 0;
+  height: 52%;
+  background: var(--black-key-bg);
+  z-index: 10;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.25);
+  transition: background 0.05s;
+}
+
+.white-key.active { background: var(--active-white); }
+.black-key.active { background: var(--active-black); }
+.white-key.next-target { background: var(--next-target); }
+.black-key.next-target { background: #00cc00; }
+.white-key.next-next-target { background: var(--next-next-target); }
+.black-key.next-next-target { background: #88dd88; }
+
+/* 音名ラベル */
+.note-label {
+  position: absolute;
+  right: 4px;
+  bottom: 18%;
+  font-size: clamp(10px, 2.2vw, 18px);
+  font-weight: 700;
+  color: rgba(0,0,0,0.4);
+  pointer-events: none;
+}
+.black-key .note-label {
+  color: rgba(255,255,255,0.55);
+  bottom: 8px;
+  right: 3px;
+  font-size: clamp(9px, 1.8vw, 14px);
+}
+.note-label.hidden { display: none; }
+
+/* 上部UI */
+.title-btn {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 18px;
+  background: rgba(0,0,0,0.65);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 100;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.title-btn:active { transform: translateX(-50%) scale(0.96); }
+
+.settings-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 42px;
+  height: 42px;
+  background: rgba(0,0,0,0.65);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  z-index: 100;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.settings-btn:active { transform: scale(0.9); }
+
+.toggle-group {
+  position: absolute;
+  top: 10px;
+  left: 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.65);
+  padding: 7px 12px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 13px;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+.toggle-group label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.toggle-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #66ff66;
+}
+
+/* 録音コントロール */
+.control-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: none;
+  gap: 8px;
+  z-index: 100;
+}
+.control-panel.visible { display: flex; }
+
+.ctrl-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  transition: transform 0.1s, background 0.15s;
+}
+.ctrl-btn:active { transform: scale(0.9); }
+.ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.ctrl-btn.recording { background: #ff3b3b; color: #fff; }
+.ctrl-btn.playing { background: #3bff6a; color: #111; }
+
+.undo-btn {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  z-index: 99;
+  display: none;
+}
+.undo-btn.visible { display: block; }
+.undo-btn:active { transform: translate(-50%, -50%) scale(0.9); }
+
+/* ログ表示 */
+.log-display {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  height: 72px;
+  background: rgba(0,0,0,0.82);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: clamp(18px, 4.5vw, 32px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: none;
+  z-index: 100;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+.log-display.visible { display: block; }
+.log-display::-webkit-scrollbar { height: 6px; }
+.log-display::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.5);
+  border-radius: 3px;
+}
+.log-note {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+/* 確認ダイアログ */
+.confirm-dialog, .settings-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  padding: 16px;
+}
+.confirm-dialog.visible, .settings-modal.visible { display: flex; }
+
+.confirm-box, .settings-content {
+  background: #1c1c1c;
+  border-radius: 16px;
+  max-width: 340px;
+  width: 100%;
+  color: #fff;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.confirm-box {
+  padding: 24px;
+  text-align: center;
+}
+.confirm-box p {
+  margin: 0 0 20px;
+  font-size: 16px;
+  color: #eee;
+}
+.confirm-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.confirm-buttons button {
+  padding: 11px 26px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirm-yes { background: #ff3b3b; color: #fff; }
+.confirm-no { background: #444; color: #fff; }
+
+/* 設定モーダル */
+.settings-content {
+  padding: 22px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.settings-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  text-align: center;
+}
+.settings-row { margin-bottom: 16px; }
+.settings-label {
+  display: block;
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+.settings-input, .settings-select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 15px;
+}
+.settings-input:focus, .settings-select:focus {
+  outline: none;
+  border-color: #66ff66;
+}
+.settings-info {
+  font-size: 11px;
+  color: #777;
+  margin-top: 4px;
+}
+.settings-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.settings-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: #66ff66;
+}
+.settings-checkbox-label {
+  font-size: 14px;
+  cursor: pointer;
+}
+.settings-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+.settings-btn-apply, .settings-btn-close {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.settings-btn-apply { background: #66ff66; color: #111; }
+.settings-btn-close { background: #444; color: #fff; }
+
+/* 向き対応 */
+@media (orientation: portrait) {
+  .piano-single { display: none; }
+  .piano-double { display: flex; }
+  .note-label { font-size: clamp(11px, 3.6vw, 20px); }
+  .black-key .note-label { font-size: clamp(10px, 2.8vw, 15px); }
+}
+@media (orientation: landscape) {
+  .piano-single { display: flex; }
+  .piano-double { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="piano-wrapper">
+  <div class="piano-single" id="piano-single"></div>
+  <div class="piano-double">
+    <div class="piano" id="piano-top"></div>
+    <div class="piano" id="piano-bottom"></div>
+  </div>
+
+  <div class="settings-btn" id="settings-btn" title="設定">⚙️</div>
+  <div class="title-btn" id="title-btn">mi35Piano</div>
+
+  <div class="toggle-group">
+    <label>
+      <input type="checkbox" id="label-checkbox" checked>
+      音階表示
+    </label>
+    <label>
+      <input type="checkbox" id="easy-chord-checkbox">
+      簡単和音
+    </label>
+  </div>
+
+  <div class="control-panel" id="control-panel">
+    <button class="ctrl-btn" id="btn-record" title="録音">🔴</button>
+    <button class="ctrl-btn" id="btn-play" title="再生">▶️</button>
+    <button class="ctrl-btn" id="btn-clear" title="クリア">🗑️</button>
+  </div>
+
+  <button class="undo-btn" id="btn-undo" title="1つ戻す">↩️</button>
+  <div class="log-display" id="log-display"></div>
+
+  <!-- 確認ダイアログ -->
+  <div class="confirm-dialog" id="confirm-dialog">
+    <div class="confirm-box">
+      <p>本当にログをクリアしますか？</p>
+      <div class="confirm-buttons">
+        <button class="confirm-yes" id="confirm-yes">はい</button>
+        <button class="confirm-no" id="confirm-no">いいえ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div class="settings-modal" id="settings-modal">
+    <div class="settings-content">
+      <h2 class="settings-title">設定</h2>
+
+      <div class="settings-row">
+        <label class="settings-label">開始音</label>
+        <select class="settings-select" id="setting-start-key">
+          <option value="0">ド (C)</option>
+          <option value="1">ド# (C#)</option>
+          <option value="2">レ (D)</option>
+          <option value="3">レ# (D#)</option>
+          <option value="4">ミ (E)</option>
+          <option value="5">ファ (F)</option>
+          <option value="6">ファ# (F#)</option>
+          <option value="7">ソ (G)</option>
+          <option value="8">ソ# (G#)</option>
+          <option value="9">ラ (A)</option>
+          <option value="10">ラ# (A#)</option>
+          <option value="11">シ (B)</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <label class="settings-label">総鍵盤数</label>
+        <input type="number" class="settings-input" id="setting-num-keys" min="1" max="48" value="24">
+        <div class="settings-info">1〜48 の範囲で指定</div>
+      </div>
+
+      <div class="settings-row">
+        <label class="settings-label">音の種類</label>
+        <select class="settings-select" id="setting-tone">
+          <option value="sine">サイン波（柔らかい）</option>
+          <option value="square">矩形波（電子音）</option>
+          <option value="sawtooth">ノコギリ波（明るい）</option>
+          <option value="triangle">三角波（中間）</option>
+        </select>
+      </div>
+
+      <div class="settings-row">
+        <label class="settings-label">デザイン</label>
+        <select class="settings-select" id="setting-theme">
+          <option value="mi35Piano">mi35Piano（ピンク系）</option>
+          <option value="classic">クラシック（黒白）</option>
+        </select>
+      </div>
+
+      <div class="settings-checkbox-row">
+        <input type="checkbox" class="settings-checkbox" id="setting-show-labels" checked>
+        <label class="settings-checkbox-label" for="setting-show-labels">音階表示</label>
+      </div>
+      <div class="settings-checkbox-row">
+        <input type="checkbox" class="settings-checkbox" id="setting-copy-mode">
+        <label class="settings-checkbox-label" for="setting-copy-mode">録音モード</label>
+      </div>
+      <div class="settings-checkbox-row">
+        <input type="checkbox" class="settings-checkbox" id="setting-sustain-mode">
+        <label class="settings-checkbox-label" for="setting-sustain-mode">音の持続モード</label>
+      </div>
+
+      <div class="settings-buttons">
+        <button class="settings-btn-apply" id="settings-apply">更新</button>
+        <button class="settings-btn-close" id="settings-close">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   0. ビューポート高さ対策（iOS対応）
+========================================================= */
+function setRealVH() {
+  const h = window.visualViewport?.height || window.innerHeight;
+  document.documentElement.style.setProperty('--vh', `${h * 0.01}px`);
+}
+setRealVH();
+window.addEventListener('resize', setRealVH);
+window.visualViewport?.addEventListener('resize', setRealVH);
+
+/* =========================================================
+   1. 設定管理
+========================================================= */
+const DEFAULT_SETTINGS = {
+  startKey: 0,
+  numKeys: 24,
+  showLabels: true,
+  copyMode: false,
+  toneType: 'sine',
+  sustainMode: false,
+  theme: 'mi35Piano'
+};
+
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem('pianoSettings');
+    return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : { ...DEFAULT_SETTINGS };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(s) {
+  localStorage.setItem('pianoSettings', JSON.stringify(s));
+}
+
+const settings = loadSettings();
+
+/* URLパラメータ優先 */
+const params = new URLSearchParams(window.location.search);
+const startKey   = parseInt(params.get('start')  || settings.startKey, 10);
+const numKeys    = Math.min(48, Math.max(1, parseInt(params.get('keys') || settings.numKeys, 10)));
+let showLabels   = params.has('labels') ? params.get('labels') === 'true' : settings.showLabels;
+const copyMode   = params.get('copy') === 'true' || (!params.has('copy') && settings.copyMode);
+const toneType   = params.get('tone') || settings.toneType;
+const sustainMode = params.get('sustain') === 'true' || (!params.has('sustain') && settings.sustainMode);
+const theme      = params.get('theme') || settings.theme || 'mi35Piano';
+
+/* =========================================================
+   2. テーマ適用
+========================================================= */
+function applyTheme(name) {
+  const root = document.documentElement;
+  if (name === 'classic') {
+    root.style.setProperty('--white-key-bg', '#ffffff');
+    root.style.setProperty('--white-key-border', '#222');
+    root.style.setProperty('--black-key-bg', '#111');
+  } else {
+    root.style.setProperty('--white-key-bg', '#ffc8d5');
+    root.style.setProperty('--white-key-border', '#ff5f83');
+    root.style.setProperty('--black-key-bg', '#ff6a8c');
+  }
+}
+applyTheme(theme);
+
+/* =========================================================
+   3. 音声エンジン
+========================================================= */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const activeOscillators = new Map();
+
+document.addEventListener('pointerdown', () => {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}, { once: true });
+
+function playNote(freq) {
+  if (activeOscillators.has(freq)) stopNote(freq);
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = toneType;
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  gain.gain.setValueAtTime(0.32, audioCtx.currentTime);
+  osc.start();
+
+  activeOscillators.set(freq, { osc, gain });
+
+  if (!sustainMode) {
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.2);
+    osc.stop(audioCtx.currentTime + 3.3);
+  }
+}
+
+function playLogNote(freq, durationMs) {
+  if (activeOscillators.has(freq)) stopNote(freq);
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = toneType;
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  const dur = Math.min(Math.max(durationMs, 800), 4000) / 1000;
+  gain.gain.setValueAtTime(0.32, audioCtx.currentTime);
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  osc.stop(audioCtx.currentTime + dur + 0.05);
+
+  activeOscillators.set(freq, { osc, gain });
+}
+
+function stopNote(freq) {
+  const node = activeOscillators.get(freq);
+  if (!node) return;
+  const { osc, gain } = node;
+  try {
+    gain.gain.cancelScheduledValues(audioCtx.currentTime);
+    gain.gain.setValueAtTime(gain.gain.value, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+    osc.stop(audioCtx.currentTime + 0.9);
+  } catch (_) {}
+  activeOscillators.delete(freq);
+}
+
+function stopAllNotes() {
+  [...activeOscillators.keys()].forEach(stopNote);
+}
+
+/* =========================================================
+   4. 音階データ
+========================================================= */
+const BASE_FREQ = 261.63; // C4
+const NOTE_NAMES = ['ド','ド#','レ','レ#','ミ','ファ','ファ#','ソ','ソ#','ラ','ラ#','シ'];
+const WHITE_PATTERN = [0, 2, 4, 5, 7, 9, 11];
+
+const allNotes = Array.from({ length: 48 }, (_, i) => ({
+  freq: BASE_FREQ * Math.pow(2, i / 12),
+  name: NOTE_NAMES[i % 12],
+  octave: Math.floor(i / 12),
+  index: i
+}));
+
+const notes = allNotes.slice(startKey, startKey + numKeys);
+
+/* =========================================================
+   5. 鍵盤構築
+========================================================= */
+function buildPiano(container, slice, sliceStartIndex = 0, skipFirstBlack = false) {
+  container.innerHTML = '';
+
+  const whiteData = [];
+  const blackData = [];
+
+  slice.forEach((note, i) => {
+    const globalIdx = sliceStartIndex + i;
+    const pitchClass = (startKey + globalIdx) % 12;
+    if (WHITE_PATTERN.includes(pitchClass)) {
+      whiteData.push({ note, localIndex: i, globalIdx });
+    } else if (!(skipFirstBlack && i === 0)) {
+      blackData.push({ note, localIndex: i, globalIdx });
+    }
+  });
+
+  // 白鍵
+  whiteData.forEach(d => {
+    const key = document.createElement('div');
+    key.className = 'white-key';
+    key.dataset.freq = d.note.freq;
+    key.dataset.name = d.note.name;
+
+    const label = document.createElement('div');
+    label.className = showLabels ? 'note-label' : 'note-label hidden';
+    label.textContent = d.note.name;
+    key.appendChild(label);
+    container.appendChild(key);
+  });
+
+  // 黒鍵
+  const whiteW = 100 / whiteData.length;
+  const blackW = whiteW * 0.68;
+
+  blackData.forEach(d => {
+    let whiteBefore = 0;
+    for (let j = 0; j < d.localIndex; j++) {
+      const pc = (startKey + sliceStartIndex + j) % 12;
+      if (WHITE_PATTERN.includes(pc)) whiteBefore++;
+    }
+
+    const bk = document.createElement('div');
+    bk.className = 'black-key';
+    bk.dataset.freq = d.note.freq;
+    bk.dataset.name = d.note.name;
+    bk.style.width = blackW + '%';
+    bk.style.left = (whiteBefore === 0)
+      ? `-${blackW / 2}%`
+      : `${whiteBefore * whiteW - blackW / 2}%`;
+
+    const label = document.createElement('div');
+    label.className = showLabels ? 'note-label' : 'note-label hidden';
+    label.textContent = d.note.name;
+    bk.appendChild(label);
+    container.appendChild(bk);
+  });
+}
+
+function countWhiteKeys(slice, startIdx) {
+  return slice.filter((_, i) => WHITE_PATTERN.includes((startKey + startIdx + i) % 12)).length;
+}
+
+/* 縦画面用に白鍵数を揃える */
+function prepareDoubleRows() {
+  let half = Math.floor(notes.length / 2);
+  let topSlice = notes.slice(0, half);
+  let bottomSlice = notes.slice(half);
+  let topStart = 0;
+  let bottomStart = half;
+
+  let attempts = 0;
+  while (countWhiteKeys(topSlice, topStart) !== countWhiteKeys(bottomSlice, bottomStart) && attempts < 14) {
+    attempts++;
+    if (countWhiteKeys(topSlice, topStart) < countWhiteKeys(bottomSlice, bottomStart)) {
+      half++;
+      if (half >= notes.length) break;
+    } else {
+      half--;
+      if (half <= 0) break;
+    }
+    topSlice = notes.slice(0, half);
+    bottomSlice = notes.slice(half);
+    bottomStart = half;
+  }
+
+  // 境界が黒鍵の場合の調整
+  const boundaryPc = (startKey + half) % 12;
+  let skipFirstBlack = false;
+  if (!WHITE_PATTERN.includes(boundaryPc) && notes.length > half) {
+    topSlice = notes.slice(0, half + 1);
+    bottomSlice = notes.slice(half);
+    skipFirstBlack = true;
+  }
+
+  return { topSlice, bottomSlice, topStart, bottomStart, skipFirstBlack };
+}
+
+/* 初期構築 */
+buildPiano(document.getElementById('piano-single'), notes, 0, false);
+const { topSlice, bottomSlice, topStart, bottomStart, skipFirstBlack } = prepareDoubleRows();
+buildPiano(document.getElementById('piano-top'), topSlice, topStart, false);
+buildPiano(document.getElementById('piano-bottom'), bottomSlice, bottomStart, skipFirstBlack);
+
+/* =========================================================
+   6. 簡単和音用ヘルパー
+========================================================= */
+function getWhiteKeyFreqByWhiteIndex(whiteIdx) {
+  let count = -1;
+  for (let i = 0; i < notes.length; i++) {
+    if (WHITE_PATTERN.includes((startKey + i) % 12)) {
+      count++;
+      if (count === whiteIdx) return notes[i].freq;
+    }
+  }
+  return null;
+}
+
+function getBlackKeyPrevWhite2(freq) {
+  const found = notes.findIndex(n => Math.abs(n.freq - freq) < 0.1);
+  if (found < 0) return null;
+  let whiteCount = 0;
+  for (let i = found - 1; i >= 0; i--) {
+    if (WHITE_PATTERN.includes((startKey + i) % 12)) {
+      whiteCount++;
+      if (whiteCount === 2) return notes[i].freq;
+    }
+  }
+  return null;
+}
+
+/* =========================================================
+   7. 録音・再生システム
+========================================================= */
+const TEMPO_BPM = 120;
+const MS_PER_BEAT = 60000 / TEMPO_BPM;
+const MIN_UNIT = 0.25;
+const MS_PER_UNIT = MS_PER_BEAT * MIN_UNIT;
+const CHORD_THRESHOLD = 55;
+
+function roundToBeat(ms) {
+  return Math.round(ms / MS_PER_UNIT) * MS_PER_UNIT;
+}
+
+function getColorByDuration(ms) {
+  const beats = Math.round(ms / MS_PER_UNIT) * MIN_UNIT;
+  if (beats <= 0.25) return '#999';
+  if (beats <= 0.5)  return '#bbb';
+  if (beats <= 1)    return '#fff';
+  if (beats <= 2)    return '#5a9cff';
+  return '#b07aff';
+}
+
+let playLog = [];
+let nextNoteId = 1;
+let isRecording = false;
+let isPlayMode = false;
+let playIndex = 0;
+
+const noteStartTimes = new Map();
+const currentGesture = new Map();
+let gestureStartTime = 0;
+
+function generateNoteId() {
+  return `n_${Date.now()}_${nextNoteId++}`;
+}
+
+function createNoteEvent(notesArr, timestamp = Date.now()) {
+  return {
+    id: generateNoteId(),
+    timestamp,
+    duration: 0,
+    notes: notesArr
+  };
+}
+
+function saveLog() {
+  localStorage.setItem('pianoLog', JSON.stringify(playLog));
+}
+
+function loadLog() {
+  try {
+    const raw = localStorage.getItem('pianoLog');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length && parsed[0].id) {
+      playLog = parsed;
+    }
+  } catch {}
+}
+
+function updateLogDisplay() {
+  if (!copyMode) return;
+  const logEl = document.getElementById('log-display');
+  logEl.innerHTML = '';
+
+  let nextSpan = null;
+  playLog.forEach((ev, idx) => {
+    const span = document.createElement('span');
+    span.className = 'log-note';
+    span.style.color = getColorByDuration(ev.duration);
+
+    if (isPlayMode) {
+      if (idx === playIndex) {
+        span.style.background = '#66ff66';
+        nextSpan = span;
+      } else if (idx === playIndex + 1) {
+        span.style.background = '#ccffcc';
+      }
+    }
+
+    span.textContent = ev.notes.length > 1
+      ? `[${ev.notes.map(n => n.name).join('+')}]`
+      : ev.notes[0].name;
+
+    span.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      ev.notes.forEach(n => playLogNote(n.freq, ev.duration));
+    });
+
+    logEl.appendChild(span);
+  });
+
+  if (isPlayMode && nextSpan) {
+    setTimeout(() => {
+      const cRect = logEl.getBoundingClientRect();
+      const tRect = nextSpan.getBoundingClientRect();
+      logEl.scrollLeft += tRect.left - cRect.left - cRect.width / 2 + tRect.width / 2;
+    }, 40);
+  } else {
+    logEl.scrollLeft = logEl.scrollWidth;
+  }
+}
+
+function clearHighlight() {
+  document.querySelectorAll('.next-target, .next-next-target')
+    .forEach(el => el.classList.remove('next-target', 'next-next-target'));
+}
+
+function highlightNextKey() {
+  clearHighlight();
+  if (playIndex < playLog.length) {
+    playLog[playIndex].notes.forEach(n => {
+      document.querySelectorAll(`[data-freq="${n.freq}"]`)
+        .forEach(k => k.classList.add('next-target'));
+    });
+  }
+  if (playIndex + 1 < playLog.length) {
+    const next = playLog[playIndex + 1];
+    const same = playIndex < playLog.length &&
+      playLog[playIndex].notes.length === next.notes.length &&
+      playLog[playIndex].notes.every((n, i) => Math.abs(n.freq - next.notes[i].freq) < 0.1);
+    if (!same) {
+      next.notes.forEach(n => {
+        document.querySelectorAll(`[data-freq="${n.freq}"]`)
+          .forEach(k => k.classList.add('next-next-target'));
+      });
+    }
+  }
+  updateLogDisplay();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById('btn-undo');
+  if (isRecording && playLog.length > 0) {
+    btn.classList.add('visible');
+    btn.disabled = false;
+  } else {
+    btn.classList.remove('visible');
+    btn.disabled = true;
+  }
+}
+
+/* =========================================================
+   8. UIイベント（設定・録音コントロール）
+========================================================= */
+const labelCheckbox = document.getElementById('label-checkbox');
+const easyChordCheckbox = document.getElementById('easy-chord-checkbox');
+labelCheckbox.checked = showLabels;
+let easyChordMode = false;
+
+labelCheckbox.addEventListener('change', e => {
+  showLabels = e.target.checked;
+  document.querySelectorAll('.note-label').forEach(l => {
+    l.classList.toggle('hidden', !showLabels);
+  });
+});
+easyChordCheckbox.addEventListener('change', e => {
+  easyChordMode = e.target.checked;
+});
+
+/* 設定モーダル */
+const settingsModal = document.getElementById('settings-modal');
+document.getElementById('settings-btn').addEventListener('click', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  // 現在値を反映
+  document.getElementById('setting-start-key').value = startKey % 12;
+  document.getElementById('setting-num-keys').value = numKeys;
+  document.getElementById('setting-tone').value = toneType;
+  document.getElementById('setting-theme').value = theme;
+  document.getElementById('setting-show-labels').checked = showLabels;
+  document.getElementById('setting-copy-mode').checked = copyMode;
+  document.getElementById('setting-sustain-mode').checked = sustainMode;
+  settingsModal.classList.add('visible');
+});
+
+document.getElementById('settings-close').addEventListener('click', () => {
+  settingsModal.classList.remove('visible');
+});
+settingsModal.addEventListener('click', e => {
+  if (e.target === settingsModal) settingsModal.classList.remove('visible');
+});
+
+document.getElementById('settings-apply').addEventListener('click', e => {
+  e.preventDefault();
+  const newS = {
+    startKey: parseInt(document.getElementById('setting-start-key').value, 10),
+    numKeys: parseInt(document.getElementById('setting-num-keys').value, 10),
+    showLabels: document.getElementById('setting-show-labels').checked,
+    copyMode: document.getElementById('setting-copy-mode').checked,
+    toneType: document.getElementById('setting-tone').value,
+    sustainMode: document.getElementById('setting-sustain-mode').checked,
+    theme: document.getElementById('setting-theme').value
+  };
+  // 範囲チェック
+  if (newS.startKey + newS.numKeys > 48) newS.numKeys = 48 - newS.startKey;
+  if (newS.numKeys < 1) newS.numKeys = 1;
+
+  saveSettings(newS);
+
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.searchParams.set('start', newS.startKey);
+  url.searchParams.set('keys', newS.numKeys);
+  url.searchParams.set('labels', newS.showLabels);
+  url.searchParams.set('copy', newS.copyMode);
+  url.searchParams.set('tone', newS.toneType);
+  url.searchParams.set('sustain', newS.sustainMode);
+  url.searchParams.set('theme', newS.theme);
+
+  settingsModal.classList.remove('visible');
+  window.location.replace(url.toString());
+});
+
+document.getElementById('title-btn').addEventListener('click', () => {
+  alert('mi35Piano\n鍵盤を叩いて耳コピを楽しもう！');
+});
+
+/* 録音モードUI初期化 */
+const controlPanel = document.getElementById('control-panel');
+const logDisplay = document.getElementById('log-display');
+if (copyMode) {
+  controlPanel.classList.add('visible');
+  logDisplay.classList.add('visible');
+  loadLog();
+  updateLogDisplay();
+}
+
+document.getElementById('btn-record').addEventListener('click', () => {
+  isRecording = !isRecording;
+  document.getElementById('btn-record').classList.toggle('recording', isRecording);
+  if (isRecording) {
+    isPlayMode = false;
+    document.getElementById('btn-play').classList.remove('playing');
+    clearHighlight();
+  }
+  updateUndoButton();
+});
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (playLog.length === 0) return;
+  isPlayMode = !isPlayMode;
+  document.getElementById('btn-play').classList.toggle('playing', isPlayMode);
+  if (isPlayMode) {
+    isRecording = false;
+    document.getElementById('btn-record').classList.remove('recording');
+    playIndex = 0;
+    highlightNextKey();
+  } else {
+    clearHighlight();
+    updateLogDisplay();
+  }
+  updateUndoButton();
+});
+
+document.getElementById('btn-undo').addEventListener('click', () => {
+  if (isRecording && playLog.length) {
+    playLog.pop();
+    updateLogDisplay();
+    saveLog();
+    updateUndoButton();
+  }
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  document.getElementById('confirm-dialog').classList.add('visible');
+});
+document.getElementById('confirm-yes').addEventListener('click', () => {
+  playLog = [];
+  playIndex = 0;
+  isRecording = false;
+  isPlayMode = false;
+  document.getElementById('btn-record').classList.remove('recording');
+  document.getElementById('btn-play').classList.remove('playing');
+  clearHighlight();
+  updateLogDisplay();
+  saveLog();
+  document.getElementById('confirm-dialog').classList.remove('visible');
+  updateUndoButton();
+});
+document.getElementById('confirm-no').addEventListener('click', () => {
+  document.getElementById('confirm-dialog').classList.remove('visible');
+});
+
+updateUndoButton();
+
+/* =========================================================
+   9. ポインタイベントエンジン
+========================================================= */
+const activePointers = new Map(); // pointerId → keyElement
+const currentChordKeys = new Set();
+
+function getKeyFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el?.closest('.white-key, .black-key') || null;
+}
+
+function cleanActiveClasses() {
+  document.querySelectorAll('.white-key, .black-key').forEach(el => {
+    const freq = parseFloat(el.dataset.freq);
+    const stillPressed = [...activePointers.values()]
+      .some(k => Math.abs(parseFloat(k.dataset.freq) - freq) < 0.1);
+    if (!stillPressed) el.classList.remove('active');
+  });
+}
+
+document.addEventListener('contextmenu', e => {
+  if (!e.target.closest('.settings-modal, .confirm-dialog')) e.preventDefault();
+});
+
+document.addEventListener('pointerdown', e => {
+  if (e.target.closest('.settings-modal, .confirm-dialog, .control-panel, .toggle-group, .title-btn, .settings-btn, .undo-btn, .log-display')) {
+    return;
+  }
+  e.preventDefault();
+
+  const key = getKeyFromPoint(e.clientX, e.clientY);
+  if (!key) return;
+
+  const freq = parseFloat(key.dataset.freq);
+  const name = key.dataset.name;
+
+  /* ---- 再生モード ---- */
+  if (isPlayMode) {
+    if (playIndex >= playLog.length) return;
+    const target = playLog[playIndex];
+    const matched = target.notes.find(n => Math.abs(n.freq - freq) < 0.1);
+    if (!matched) return;
+
+    key.classList.add('active');
+    playNote(freq);
+    currentChordKeys.add(freq);
+    activePointers.set(e.pointerId, key);
+    try { e.target.setPointerCapture(e.pointerId); } catch {}
+
+    const allPressed = target.notes.every(n =>
+      [...currentChordKeys].some(f => Math.abs(f - n.freq) < 0.1)
+    );
+    if (allPressed) {
+      playIndex++;
+      currentChordKeys.clear();
+      setTimeout(highlightNextKey, 80);
+    }
+    return;
+  }
+
+  /* ---- 通常 / 録音モード ---- */
+  activePointers.set(e.pointerId, key);
+  key.classList.add('active');
+  playNote(freq);
+
+  // 簡単和音
+  if (easyChordMode && currentGesture.size < 2) {
+    let addFreq = null;
+    const noteIdx = notes.findIndex(n => Math.abs(n.freq - freq) < 0.1);
+    const isWhite = WHITE_PATTERN.includes((startKey + noteIdx) % 12);
+
+    if (isWhite) {
+      let wIdx = -1;
+      for (let i = 0; i <= noteIdx; i++) {
+        if (WHITE_PATTERN.includes((startKey + i) % 12)) wIdx++;
+      }
+      if (wIdx >= 2) addFreq = getWhiteKeyFreqByWhiteIndex(wIdx - 2);
+    } else {
+      addFreq = getBlackKeyPrevWhite2(freq);
+    }
+
+    if (addFreq && !activeOscillators.has(addFreq)) {
+      playNote(addFreq);
+      const addKey = document.querySelector(`[data-freq="${addFreq}"]`);
+      if (addKey) addKey.classList.add('active');
+    }
+  }
+
+  // 録音
+  if (isRecording) {
+    const now = Date.now();
+    const noteKey = `${e.pointerId}_${freq}`;
+
+    if (currentGesture.size === 0) {
+      gestureStartTime = now;
+    } else {
+      const diff = now - gestureStartTime;
+      if (diff > CHORD_THRESHOLD) {
+        // 前のジェスチャを確定
+        const duration = roundToBeat(now - gestureStartTime);
+        const released = [...currentGesture.values()].map(d => d.noteInfo);
+        const ev = createNoteEvent(released, gestureStartTime);
+        ev.duration = duration;
+        playLog.push(ev);
+        currentGesture.clear();
+        noteStartTimes.clear();
+        updateLogDisplay();
+        saveLog();
+        updateUndoButton();
+        gestureStartTime = now;
+      }
+    }
+
+    const noteInfo = {
+      freq,
+      name,
+      octave: allNotes.find(n => Math.abs(n.freq - freq) < 0.1)?.octave ?? 0
+    };
+    noteStartTimes.set(noteKey, now);
+    currentGesture.set(noteKey, { noteInfo, startTime: now });
+  }
+
+  try { e.target.setPointerCapture(e.pointerId); } catch {}
+});
+
+document.addEventListener('pointermove', e => {
+  if (!activePointers.has(e.pointerId)) return;
+  e.preventDefault();
+
+  const prevKey = activePointers.get(e.pointerId);
+  const newKey = getKeyFromPoint(e.clientX, e.clientY);
+  if (!newKey || newKey === prevKey) return;
+
+  const prevFreq = parseFloat(prevKey.dataset.freq);
+
+  // 録音中なら前の音を確定
+  if (isRecording) {
+    const prevNoteKey = `${e.pointerId}_${prevFreq}`;
+    if (currentGesture.has(prevNoteKey)) {
+      const data = currentGesture.get(prevNoteKey);
+      const duration = roundToBeat(Date.now() - data.startTime);
+      const ev = createNoteEvent([data.noteInfo], data.startTime);
+      ev.duration = duration;
+      playLog.push(ev);
+      currentGesture.delete(prevNoteKey);
+      noteStartTimes.delete(prevNoteKey);
+      updateLogDisplay();
+      saveLog();
+      updateUndoButton();
+    }
+  }
+
+  prevKey.classList.remove('active');
+  if (sustainMode) setTimeout(() => stopNote(prevFreq), 40);
+
+  newKey.classList.add('active');
+  const freq = parseFloat(newKey.dataset.freq);
+  const name = newKey.dataset.name;
+  playNote(freq);
+
+  if (isRecording) {
+    const now = Date.now();
+    const noteKey = `${e.pointerId}_${freq}`;
+    const noteInfo = {
+      freq,
+      name,
+      octave: allNotes.find(n => Math.abs(n.freq - freq) < 0.1)?.octave ?? 0
+    };
+    noteStartTimes.set(noteKey, now);
+    currentGesture.set(noteKey, { noteInfo, startTime: now });
+  }
+
+  activePointers.set(e.pointerId, newKey);
+});
+
+function releasePointer(e) {
+  const key = activePointers.get(e.pointerId);
+  if (key) key.classList.remove('active');
+
+  const freq = key ? parseFloat(key.dataset.freq) : null;
+  if (freq) stopNote(freq);
+  activePointers.delete(e.pointerId);
+
+  // 簡単和音で追加した音もクリーン
+  if (easyChordMode) {
+    activeOscillators.forEach((_, f) => {
+      const still = [...activePointers.values()]
+        .some(k => Math.abs(parseFloat(k.dataset.freq) - f) < 0.1);
+      if (!still) stopNote(f);
+    });
+  }
+
+  cleanActiveClasses();
+
+  // 録音確定
+  if (isRecording && !isPlayMode && activePointers.size === 0 && currentGesture.size > 0) {
+    const duration = roundToBeat(Date.now() - gestureStartTime);
+    const released = [...currentGesture.values()].map(d => d.noteInfo);
+    const ev = createNoteEvent(released, gestureStartTime);
+    ev.duration = duration;
+    playLog.push(ev);
+    currentGesture.clear();
+    noteStartTimes.clear();
+    updateLogDisplay();
+    saveLog();
+    updateUndoButton();
+  }
+}
+
+document.addEventListener('pointerup', releasePointer);
+document.addEventListener('pointercancel', releasePointer);
+document.addEventListener('pointerleave', releasePointer);
+
+/* ページ離脱時のクリーンアップ */
+window.addEventListener('pagehide', stopAllNotes);
+window.addEventListener('blur', () => {
+  // フォーカスが外れたときも一応止める
+  if (!sustainMode) stopAllNotes();
+});
+
+/* キャッシュ残り対策：ロード時にactiveを全クリア */
+window.addEventListener('load', () => {
+  document.querySelectorAll('.white-key.active, .black-key.active')
+    .forEach(el => el.classList.remove('active'));
+  stopAllNotes();
+});
+</script>
+</body>
+</html>
