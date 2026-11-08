@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>フブさんと9個ゾロ目並走</title>
+
+<style>
+:root{color-scheme:dark;--bg:#101827;--panel:rgba(25,38,59,.88);--line:rgba(190,211,240,.14);--text:#edf4ff;--muted:#9eafc8;--accent:#72d5f5;--accent2:#8b83ff;--danger:#ff777f;--shadow:0 18px 48px rgba(0,0,0,.28)}
+*{box-sizing:border-box}
+  html{min-height:100%;background:var(--bg)}
+  body{margin:0;min-height:100vh;padding:clamp(14px,3vw,15px);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--text);background:radial-gradient(ellipse at 50% -15%,#263d61 0%,#142239 38%,#0c1422 78%);transition:background .45s ease;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  button,select{font:inherit}
+  button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  button:focus-visible,select:focus-visible{outline:3px solid #8ce6ff;outline-offset:3px}
+  .app{width:min(100%,900px);margin:0 auto}
+  .header{text-align:center;margin:4px 0 12px}
+  .eyebrow{color:var(--accent);font-size:.76rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase}
+  .header h1{font-size:clamp(1.45rem,4vw,2.15rem);letter-spacing:.025em;margin:7px 0 6px}
+  .subtitle{color:var(--muted);font-size:.9rem;margin:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .stats{display: grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:5px;margin-bottom:5px}
+  
+  .stat{min-width:0;padding:10px 5px;text-align:center;border-radius:14px;background:rgba(255,255,255,.045)}
+  .stat-label{display:block;color:var(--muted);font-size:.73rem;white-space:nowrap}
+  .stat-value{display:block;font-size:clamp(1.05rem,3vw,1.5rem);font-weight:800;font-variant-numeric:tabular-nums;margin-top:3px}
+  .stat:first-child 
+  .stat-value{color:var(--accent)}
+  .game{padding:clamp(16px,4vw,28px);text-align:center;margin-bottom: 5px;}
+  .game-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+  .section-label{font-size:.82rem;color:var(--muted);font-weight:700;letter-spacing:.08em}
+  .status{font-size:.78rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 10px}
+  .dice-grid{width:min(100%,390px);aspect-ratio:1;margin:0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:clamp(9px,2.5vw,15px)}
+  .die{width:100%;min-width:0;aspect-ratio:1;display:grid;place-items:center;border-radius:clamp(13px,3vw,20px);font-size:clamp(2rem,8vw,3.5rem);font-weight:850;color:#f5fbff;background:linear-gradient(145deg,#315b88,#1b3558);border:1px solid rgba(180,220,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 18px rgba(0,0,0,.22);font-variant-numeric:tabular-nums}
+  .die.highlight{background:linear-gradient(145deg,#ff8c91,#d83d61);border-color:rgba(255,220,220,.7);box-shadow:0 0 0 2px rgba(255,130,145,.16),0 8px 25px rgba(229,67,100,.25);animation:glow .8s ease-in-out infinite alternate}
+  .die.rolling{animation:roll .5s ease-out}
+  .die.highlight.rolling{animation:roll .5s ease-out,glow .8s .5s ease-in-out infinite alternate}
+  .die.placeholder{color:#7890ad;background:linear-gradient(145deg,#233b59,#192b43);font-size:clamp(1.5rem,6vw,2.6rem)}@keyframes roll{from{transform:rotate(0deg) scale(.92)}to{transform:rotate(720deg) scale(1)}}@keyframes glow{from{filter:brightness(1);box-shadow:0 0 8px rgba(255,80,80,.6)}to{filter:brightness(1.16);box-shadow:0 0 18px rgba(255,200,200,1);transform:translateY(-2px)}}
+  .roll-summary{min-height:28px;margin:17px 0 4px;color:var(--muted);font-size:.9rem}
+  .roll-summary strong{color:var(--text)}
+  .actions{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:18px}
+  .btn{border:0;border-radius:999px;padding:12px 22px;min-height:46px;font-weight:800;cursor:pointer;transition:transform .15s ease,filter .15s ease,background .15s ease}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{color:#102034;background:linear-gradient(120deg,#8ce5f7,#9d9aff);box-shadow:0 8px 22px rgba(94,190,235,.2)}
+  .btn-secondary{color:var(--text);background:rgba(255,255,255,.09);border:1px solid var(--line)}
+  .btn-danger{color:#fff;background:linear-gradient(120deg,#df596b,#a93453)}
+  .dice-stop-setting{display:flex;align-items:center;justify-content:center;gap:9px;margin:17px auto 0;color:var(--muted);font-size:.88rem;font-weight:700}
+  .dice-stop-setting select{min-height:38px;padding:7px 28px 7px 10px}select{color:var(--text);background:#1a2b43;border:1px solid var(--line);border-radius:11px;padding:9px 30px 9px 12px;min-height:42px}
+  .lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px}
+  .history,.video{padding:0px;margin-bottom:5px}
+  .panel-heading {font-size: 1rem;margin: 10px 10px 5px}
+  .history-list{list-style:none;margin:0;padding:5px;display:grid;gap:7px}
+  .history-list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.045);font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.83rem}
+  .history-list li.hit{color:#ff9ba5}
+  .history-empty{color:var(--muted);font-size:.85rem;padding:12px 0}
+  .history-meta{color:var(--muted);font: .72rem system-ui,sans-serif;white-space:nowrap}
+  .video-frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:13px;background:#080e18}
+  .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video-note{color:var(--muted);font-size:.74rem;margin:9px 0 0}
+  .footer{text-align:center;color:#7488a4;font-size:.72rem;margin:20px 0 4px}
+  .popup{display:none;position:fixed;z-index:20;inset:0;padding:18px;align-items:center;justify-content:center;background:rgba(3,8,16,.72);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+  .popup.open{display:flex}
+  .popup-card{width:min(100%,410px);padding:26px 22px;text-align:center;background:linear-gradient(155deg,#243957,#111d30);border:1px solid rgba(190,220,255,.2);border-radius:24px;box-shadow:0 25px 80px rgba(0,0,0,.48);animation:popIn .2s ease-out}
+  .popup-card h2{margin:0 0 10px;font-size:1.35rem}
+  .popup-card p{color:#d9e8fa;line-height:1.65;margin:0 0 20px}@keyframes popIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .popup-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  
+@media(max-width:650px){
+  .dice-stop-setting{margin-top:15px}
+  /* スマホでもPCと同じ6列・2カラム構成を維持する */
+  .stats{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+  .stat{padding:8px 2px}
+  .stat-label{font-size:clamp(.52rem,2vw,.73rem)}
+  .stat-value{font-size:clamp(.8rem,3vw,1.5rem)}
+  .lower{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+  .game-top{margin-bottom:14px}
+  .history,.video{padding:0}
+  /* サイコロだけが画面幅いっぱいに拡大されないよう上限を設ける */
+  .dice-grid{width:min(100%,250px);gap:clamp(6px,1.8vw,15px)}
+  .game{padding:16px}
+  .panel-heading{font-size:.9rem}
+  .history-list li{padding:6px 5px;gap:4px;font-size:.68rem}
+  .history-meta{font-size:.62rem}
+}
+@media(max-width:360px){
+  .dice-stop-setting{font-size:.82rem}
+  .dice-stop-setting select{min-height:36px}
+  body{padding:11px}
+  .stats{padding:8px}
+  .stat-label{font-size:.5rem}
+  .btn{padding:11px 16px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+</style>
+  
+</head>
+<body>
+<main class="app" id="app-root">
+  <header class="header"><div class="eyebrow">FUBUKI Dice Challenge · 9 Dice</div><h1>🌽 フブさんと9個ゾロ目並走 🎲</h1></header>
+  <section class="video panel" aria-label="配信動画">
+    <div class="video-frame"><iframe id="youtube-frame" title="YouTube動画" src="https://www.youtube.com/embed/yt8KlLj8_Do" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  </section>
+  <section class="stats panel" aria-label="抽選回数と個数ごとの回数結果">
+    <div class="stat"><span class="stat-label">抽選回数</span><span class="stat-value" id="roll-count">0</span></div>
+    <div class="stat"><span class="stat-label">5個</span><span class="stat-value" id="count-5">0</span></div>
+    <div class="stat"><span class="stat-label">6個</span><span class="stat-value" id="count-6">0</span></div>
+    <div class="stat"><span class="stat-label">7個</span><span class="stat-value" id="count-7">0</span></div>
+    <div class="stat"><span class="stat-label">8個</span><span class="stat-value" id="count-8">0</span></div>
+    <div class="stat"><span class="stat-label">9個</span><span class="stat-value" id="count-9">0</span></div>
+  </section>
+  <section class="game panel" aria-label="サイコロ">
+    <div class="game-top"><span class="section-label">YOUR DICE</span><span class="status" id="game-status">抽選待機中</span></div>
+    <div class="dice-grid" id="dice-container" aria-label="サイコロ9個">
+      <div class="die placeholder">?</div><div class="die placeholder">?</div><div class="die placeholder">?</div>
+      <div class="die placeholder">?</div><div class="die placeholder">?</div><div class="die placeholder">?</div>
+      <div class="die placeholder">?</div><div class="die placeholder">?</div><div class="die placeholder">?</div>
+    </div>
+    <div class="dice-stop-setting"><label for="popup-threshold">停止条件</label><select id="popup-threshold" aria-label="停止条件"><option value="5">5個以上</option><option value="6">6個以上</option><option value="7">7個以上</option><option value="8">8個以上</option><option value="9">9個以上</option></select></div>
+    <p class="roll-summary" id="roll-summary" aria-live="polite">「9個振る」を押して抽選を開始してください。</p>
+    <div class="actions">
+      <button class="btn btn-primary" id="roll-button" type="button">🎲 9個振る</button>
+      <button class="btn btn-secondary" id="post-button" type="button">𝕏 結果をポスト</button>
+      <button class="btn btn-secondary" id="reset-button" type="button">リセット</button>
+    </div>
+  </section>
+  <section class="history panel" aria-label="抽選履歴">
+    <h2 class="panel-heading">🎲 抽選履歴 <span style="color:var(--muted);font-size:.78rem;font-weight:500">直近10回</span></h2>
+    <ul class="history-list" id="history-list"><li class="history-empty">まだ抽選履歴はありません。</li></ul>
+  </section>
+  <footer class="footer">データはこのブラウザ内に保存されます（LocalStorage）。</footer>
+</main>
+<div class="popup" id="result-popup" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="popup-message"><div class="popup-card"><h2 id="result-title">🎉 ゾロ目達成！</h2><p id="popup-message"></p><div class="popup-actions"><button class="btn btn-primary" id="result-ok" type="button">OK</button></div></div></div>
+<div class="popup" id="reset-popup" role="dialog" aria-modal="true" aria-labelledby="reset-title"><div class="popup-card"><h2 id="reset-title">記録をリセットしますか？</h2><p>抽選回数・達成回数・履歴・現在の出目をすべて初期化します。この操作は取り消せません。</p><div class="popup-actions"><button class="btn btn-danger" id="reset-confirm" type="button">リセットする</button><button class="btn btn-secondary" id="reset-cancel" type="button">キャンセル</button></div></div></div>
+<script>
+'use strict';
+(() => {
+  const pageId = location.pathname.split('/').pop() || 'index.html';
+  const storageKey = `fubuki_dice9_state_${pageId}`;
+  const legacyPrefix = `session_data_${pageId}`;
+  const DEFAULT_VIDEO = 'yt8KlLj8_Do';
+  const state = { rollCount:0, counts:{5:0,6:0,7:0,8:0,9:0}, history:[], rolls:[], lastZoro:0, threshold:5 };
+  const $ = id => document.getElementById(id);
+  const diceContainer = $('dice-container');
+  const historyList = $('history-list');
+  const baseBackground = 'radial-gradient(ellipse at 50% -15%,#263d61 0%,#142239 38%,#0c1422 78%)';
+  // 背景演出の差し替えは、ここにある5～9の値だけを編集してください。
+  // 各値にはCSSのbackgroundで使える色・gradientをそのまま指定できます。
+  const BACKGROUND_THEMES = {
+    5: 'radial-gradient(ellipse at 50% 0%, #8b6848 0%, #493729 48%, #171d2a 100%)',
+    6: 'radial-gradient(ellipse at 50% 0%, #985078 0%, #4d294a 48%, #171d2a 100%)',
+    7: 'radial-gradient(ellipse at 50% 0%, #6656a5 0%, #332c69 48%, #121b30 100%)',
+    8: 'radial-gradient(ellipse at 50% 0%, #4f72b1 0%, #293d75 48%, #101b30 100%)',
+    9: 'linear-gradient(115deg, #a94d5a 0%, #a77b48 20%, #9a984e 40%, #4d8c70 60%, #4d719d 80%, #79649c 100%)'
+  };
+  let lastFocused = null;
+  let resultPopupOpen = false;
+  let previousBodyOverflow = '';
+
+  function applyBackground(maxCount) { document.body.style.background = maxCount >= 5 ? (BACKGROUND_THEMES[maxCount] || baseBackground) : baseBackground; }
+  function safeNumber(value) { const n = Number(value); return Number.isSafeInteger(n) && n >= 0 ? n : 0; }
+  function validHistory(items) {
+    if (!Array.isArray(items)) return [];
+    return items.slice(-10).filter(item => item && Array.isArray(item.rolls) && item.rolls.length === 9 && item.rolls.every(n => Number.isInteger(n) && n >= 1 && n <= 6))
+      .map(item => ({rolls:item.rolls.slice(), max:safeNumber(item.max), hit:Number(item.max) >= 5, time:typeof item.time === 'string' ? item.time : ''}));
+  }
+  function saveState() {
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); }
+    catch (error) { console.warn('記録を保存できませんでした。ブラウザの保存容量や設定を確認してください。', error); }
+  }
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const data = JSON.parse(raw);
+        state.rollCount = safeNumber(data.rollCount);
+        [5,6,7,8,9].forEach(n => state.counts[n] = safeNumber(data.counts && data.counts[n]));
+        state.history = validHistory(data.history);
+        state.rolls = Array.isArray(data.rolls) && data.rolls.length === 9 && data.rolls.every(n => Number.isInteger(n) && n >= 1 && n <= 6) ? data.rolls.slice() : [];
+        state.lastZoro = safeNumber(data.lastZoro);
+        state.threshold = [5,6,7,8,9].includes(Number(data.threshold)) ? Number(data.threshold) : 5;
+        return;
+      }
+      // 旧バージョンのキーを読み込み、新形式へ移行する。
+      const oldRollCount = localStorage.getItem(`${legacyPrefix}_rollCount`);
+      if (oldRollCount !== null) {
+        state.rollCount = safeNumber(oldRollCount);
+        [5,6,7,8,9].forEach(n => state.counts[n] = safeNumber(localStorage.getItem(`${legacyPrefix}_count${n}`)));
+        try {
+          const oldHistory = JSON.parse(localStorage.getItem(`${legacyPrefix}_history`) || '[]');
+          state.history = Array.isArray(oldHistory) ? oldHistory.slice(-10).map(item => {
+            const nums = String(item.text || '').split(',').map(v => Number(v.trim()));
+            return nums.length === 9 && nums.every(n => Number.isInteger(n) && n >= 1 && n <= 6) ? {rolls:nums,max:item.hit ? 5 : 0,hit:!!item.hit,time:''} : null;
+          }).filter(Boolean) : [];
+        } catch (_) { state.history = []; }
+        saveState();
+      }
+    } catch (error) { console.warn('保存データを読み込めませんでした。', error); }
+  }
+  function renderStats() {
+    $('roll-count').textContent = state.rollCount;
+    [5,6,7,8,9].forEach(n => $(`count-${n}`).textContent = state.counts[n]);
+  }
+  function renderDice(animate = false) {
+    diceContainer.replaceChildren();
+    if (!state.rolls.length) {
+      for (let i=0;i<9;i++) { const die=document.createElement('div'); die.className='die placeholder'; die.textContent='?'; diceContainer.appendChild(die); }
+      $('roll-summary').textContent = '「9個振る」を押して抽選を開始してください。';
+      $('game-status').textContent = '抽選待機中';
+      return;
+    }
+    const freq = {}; state.rolls.forEach(n => freq[n]=(freq[n]||0)+1);
+    state.rolls.forEach(n => { const die=document.createElement('div'); die.className='die'+(freq[n]>=5?' highlight':'')+(animate?' rolling':''); die.textContent=n; diceContainer.appendChild(die); });
+    $('roll-summary').innerHTML = `今回の最多ゾロ目：<strong>${state.lastZoro}個</strong>`;
+    $('game-status').textContent = `${state.rollCount}回目の結果`;
+  }
+  function renderHistory() {
+    historyList.replaceChildren();
+    if (!state.history.length) { const li=document.createElement('li'); li.className='history-empty'; li.textContent='まだ抽選履歴はありません。'; historyList.appendChild(li); return; }
+    state.history.slice().reverse().forEach((item,index) => {
+      const li=document.createElement('li'); if(item.max>=5) li.classList.add('hit');
+      const result=document.createElement('span'); result.textContent=item.rolls.join('·');
+      const meta=document.createElement('span'); meta.className='history-meta'; meta.textContent=item.max>=5?`${item.max}個ゾロ目`:`${state.rollCount-index}回目`;
+      li.append(result,meta); historyList.appendChild(li);
+    });
+  }
+  function renderAll(animate = false) { renderStats(); renderDice(animate); renderHistory(); $('popup-threshold').value=String(state.threshold); }
+  function getMaxCount(rolls) { const freq={}; rolls.forEach(n=>freq[n]=(freq[n]||0)+1); return Math.max(...Object.values(freq)); }
+  function rollDice() {
+    if (resultPopupOpen) return;
+    const values = new Uint32Array(9);
+    // Web Cryptoが使える環境では偏りを避ける棄却法で1～6を生成。非対応環境はMath.randomへ。
+    if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+      for(let i=0;i<9;i++){ let x; do { const one=new Uint32Array(1); crypto.getRandomValues(one); x=one[0]; } while(x>=4294967292); values[i]=(x%6)+1; }
+    } else { for(let i=0;i<9;i++) values[i]=Math.floor(Math.random()*6)+1; }
+    state.rolls=Array.from(values); state.lastZoro=getMaxCount(state.rolls); state.rollCount++;
+    if(state.lastZoro>=5) state.counts[state.lastZoro]++;
+    const time=new Date().toLocaleString('ja-JP');
+    state.history.push({rolls:state.rolls.slice(),max:state.lastZoro,hit:state.lastZoro>=5,time});
+    state.history=state.history.slice(-10);
+    applyBackground(state.lastZoro);
+    renderAll(true); saveState();
+    if(state.lastZoro>=state.threshold) openPopup(`${state.lastZoro}個ゾロ目達成！\n${state.rolls.join('・')}`);
+  }
+  function openPopup(message) {
+    if (resultPopupOpen) return;
+    $('popup-message').textContent=message;
+    resultPopupOpen=true;
+    lastFocused=document.activeElement;
+    $('result-popup').classList.add('open');
+    // 背景の全コンテンツを操作不能にし、スクロールも止める。解除はOKボタンのみ。
+    $('app-root').setAttribute('inert','');
+    previousBodyOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    $('result-ok').focus();
+  }
+  function showDialog(id) { lastFocused=document.activeElement; $(id).classList.add('open'); const button=$(id).querySelector('button'); if(button) button.focus(); }
+  function closeDialog(id) {
+    if (id==='result-popup') {
+      if (!resultPopupOpen) return;
+      resultPopupOpen=false;
+      $('app-root').removeAttribute('inert');
+      document.body.style.overflow=previousBodyOverflow;
+    }
+    $(id).classList.remove('open');
+    if(lastFocused && typeof lastFocused.focus==='function') lastFocused.focus();
+  }
+  function resetAll() {
+    state.rollCount=0; [5,6,7,8,9].forEach(n=>state.counts[n]=0); state.history=[]; state.rolls=[]; state.lastZoro=0;
+    applyBackground(0);
+    try { localStorage.removeItem(storageKey); [ 'rollCount','count5','count6','count7','count8','count9','history' ].forEach(k=>localStorage.removeItem(`${legacyPrefix}_${k}`)); }
+    catch(error) { console.warn('保存データの削除に失敗しました。',error); }
+    renderAll(); closeDialog('reset-popup');
+  }
+
+function postResult() {
+  if (resultPopupOpen) return;
+  if (!state.rolls.length) {openPopup('まだ抽選結果がありません。先に「9個振る」を押してください。'); return; }
+  const emoji = {1: '1️⃣', 2: '2️⃣', 3: '3️⃣',4: '4️⃣', 5: '5️⃣', 6: '6️⃣'};
+  const dice = state.rolls.map(n => emoji[n]).join(' ');
+  const text = `#フブキングダム
+
+🎲🦊9サイコロゾロ目耐久並走
+「結果：${state.rollCount}回目に${state.lastZoro}個ゾロ目出たよ！」
+${dice}
+https://syaotan35p.github.io/fubuki_dice9/`;
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+  function setVideoFromQuery() {
+    try { const id=new URLSearchParams(location.search).get('yt'); if(id && /^[\w-]{11}$/.test(id)) $('youtube-frame').src=`https://www.youtube.com/embed/${id}`; }
+    catch(error) { console.warn('YouTube動画IDを読み取れませんでした。',error); }
+  }
+  $('roll-button').addEventListener('click',rollDice);
+  $('post-button').addEventListener('click',postResult);
+  $('reset-button').addEventListener('click',()=>{if(!resultPopupOpen)showDialog('reset-popup');});
+  $('reset-confirm').addEventListener('click',resetAll);
+  $('reset-cancel').addEventListener('click',()=>closeDialog('reset-popup'));
+  $('result-ok').addEventListener('click',()=>closeDialog('result-popup'));
+  $('popup-threshold').addEventListener('change',event=>{ const value=Number(event.target.value); if([5,6,7,8,9].includes(value)){state.threshold=value;saveState();} });
+  $('reset-popup').addEventListener('click',event=>{if(event.target===$('reset-popup'))closeDialog('reset-popup');});
+  document.addEventListener('keydown',event=>{
+    if (resultPopupOpen) {
+      if (event.key==='Escape') { event.preventDefault(); event.stopPropagation(); }
+      if (event.key==='Tab') { event.preventDefault(); $('result-ok').focus(); }
+      return;
+    }
+    if(event.key==='Escape' && $('reset-popup').classList.contains('open')) closeDialog('reset-popup');
+  }, true);
+  document.addEventListener('click',event=>{if(resultPopupOpen && !event.target.closest('#result-popup')){event.preventDefault();event.stopPropagation();}},true);
+  document.addEventListener('submit',event=>{if(resultPopupOpen){event.preventDefault();event.stopPropagation();}},true);
+  loadState(); renderAll(); setVideoFromQuery();
+  applyBackground(state.lastZoro);
+})();
+</script>
+</body>
+</html>
