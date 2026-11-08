@@ -117,11 +117,11 @@
       <div class="die placeholder">?</div><div class="die placeholder">?</div><div class="die placeholder">?</div>
       <div class="die placeholder">?</div><div class="die placeholder">?</div><div class="die placeholder">?</div>
     </div>
-    <div class="dice-stop-setting"><label for="popup-threshold">停止条件</label><select id="popup-threshold" aria-label="停止条件"><option value="5">5個以上</option><option value="6">6個以上</option><option value="7">7個以上</option><option value="8">8個以上</option><option value="9">9個以上</option></select></div>
+    <div class="dice-stop-setting"><label for="popup-threshold">停止</label><select id="popup-threshold" aria-label="停止条件"><option value="5">5個以上</option><option value="6">6個以上</option><option value="7">7個以上</option><option value="8">8個以上</option><option value="9">9個以上</option></select></div>
     <p class="roll-summary" id="roll-summary" aria-live="polite">「9個振る」を押して抽選を開始してください。</p>
     <div class="actions">
-      <button class="btn btn-primary" id="roll-button" type="button">🎲 9個振る</button>
-      <button class="btn btn-secondary" id="post-button" type="button">𝕏 結果をポスト</button>
+      <button class="btn btn-primary" id="roll-button" type="button">🎲 振る</button>
+      <button class="btn btn-secondary" id="post-button" type="button">𝕏 結果ポスト</button>
       <button class="btn btn-secondary" id="reset-button" type="button">リセット</button>
     </div>
   </section>
@@ -212,7 +212,7 @@
     }
     const freq = {}; state.rolls.forEach(n => freq[n]=(freq[n]||0)+1);
     state.rolls.forEach(n => { const die=document.createElement('div'); die.className='die'+(freq[n]>=5?' highlight':'')+(animate?' rolling':''); die.textContent=n; diceContainer.appendChild(die); });
-    $('roll-summary').innerHTML = `今回の最多ゾロ目：<strong>${state.lastZoro}個</strong>`;
+    $('roll-summary').innerHTML = `今回：<strong>${state.lastZoro}個</strong>`;
     $('game-status').textContent = `${state.rollCount}回目の結果`;
   }
   function renderHistory() {
